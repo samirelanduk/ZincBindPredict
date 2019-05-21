@@ -1,5 +1,5 @@
 django
-django_graphene
+graphene-django
 
 numpy
 pandas
