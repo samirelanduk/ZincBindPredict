@@ -1,0 +1,8 @@
+django
+django_graphene
+
+numpy
+pandas
+scikit-learn
+
+jupyter
