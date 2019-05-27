@@ -1,10 +1,12 @@
+
 import os
 from sklearn import svm
-from sklearn.metrics import recall_score, precision_score
+import sklearn.metrics as metrics
+from sklearn.preprocessing import label_binarize
 import pandas as pd
 
 # What datasets are there?
-csvs = filter(lambda f: f.endswith("csv"), os.listdir("data"))
+csvs = filter(lambda f: f.endswith(".csv"), os.listdir("data"))
 
 for csv in csvs:
     # Get dataset
@@ -16,13 +18,19 @@ for csv in csvs:
     y = df.iloc[:, -1].values
 
     # Create model
-    model = svm.SVC(gamma="scale", class_weight={1: 50})
+    model = svm.SVC(kernel="rbf", gamma="scale", class_weight={1: 8}, probability=True)
 
     # Fit model
-    model.fit(X, y)
+    a = model.fit(X, y)
 
     # Get predictions
-    predicitions = model.predict(X)
+    predictions = model.predict(X)
 
-    print("Recall", recall_score(y, predicitions))
-    print("Precision", precision_score(y, predicitions))
+    # Get probabilities
+    probabilities = model.decision_function(X)
+    roc_x, roc_y, _ = metrics.roc_curve(y, probabilities)
+
+    # Get metrics
+    print("Recall", metrics.recall_score(y, predictions))
+    print("Precision", metrics.precision_score(y, predictions))
+    print("AUC", metrics.auc(roc_x, roc_y))
