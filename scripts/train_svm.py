@@ -1,17 +1,17 @@
-
 import os
 from sklearn import svm
 import sklearn.metrics as metrics
-from sklearn.preprocessing import label_binarize
+import matplotlib.pyplot as plt
 import pandas as pd
 
 # What datasets are there?
-csvs = filter(lambda f: f.endswith(".csv"), os.listdir("data"))
+csvs = filter(lambda f: f.endswith("H3.csv"), os.listdir("data"))
 
 for csv in csvs:
     # Get dataset
     print("Processing", csv)
     df = pd.read_csv(f"data/{csv}")
+    name = csv[:-4]
 
     # Get relevant data
     X = df.iloc[:, 2:-1].values
@@ -29,6 +29,15 @@ for csv in csvs:
     # Get probabilities
     probabilities = model.decision_function(X)
     roc_x, roc_y, _ = metrics.roc_curve(y, probabilities)
+
+    # Save chart
+    plt.plot(roc_x, roc_y, label="ROC curve")
+    plt.plot([0, 1], [0, 1], linestyle="--", label="Random model")
+    plt.xlabel("False Positive Rate")
+    plt.ylabel("True Positive Rate")
+    plt.legend(loc="lower right")
+    plt.title(f"{name} ROC")
+    plt.savefig(name + ".png")
 
     # Get metrics
     print("Recall", metrics.recall_score(y, predictions))
