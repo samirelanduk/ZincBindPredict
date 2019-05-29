@@ -1,25 +1,33 @@
 import os
+from datetime import datetime
 from sklearn import svm
 import sklearn.metrics as metrics
 from sklearn.model_selection import train_test_split
 import matplotlib.pyplot as plt
 import pandas as pd
 
+
+def print_log(string="", log=f"logs/scores_{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}.log"):
+    with open(log, "a") as f:
+        f.write(string + "\n")
+        print(string)
+
+
 # Define hyperparameters
-print("HYPERPARAMETERS")
+print_log("HYPERPARAMETERS")
 hyperparameters = {
  "kernel": "rbf", "gamma": "scale", "class_weight": {1: 5}, "probability": True
 }
 for key, value in hyperparameters.items():
-    print(f"{key}: {value}")
-print()
+    print_log(f"{key}: {value}")
+print_log("\n")
 
 
 # What datasets are there?
 csvs = filter(lambda f: f.endswith(".csv"), os.listdir("data"))
 for csv in csvs:
     # Get dataset
-    print("Processing", csv)
+    print_log("Processing " + csv)
     df = pd.read_csv(f"data/{csv}")
     name = csv[:-4]
 
@@ -39,7 +47,7 @@ for csv in csvs:
     a = model.fit(X_train, y_train)
 
     for label, X, y in (("Train", X_train, y_train), ("Test", X_test, y_test)):
-        print(" ", label.upper())
+        print_log(" " + label.upper())
         # Get predictions
         predictions = model.predict(X)
 
@@ -58,10 +66,10 @@ for csv in csvs:
         plt.clf()
 
         # Get metrics
-        print("  Recall", metrics.recall_score(y, predictions))
-        print("  Precision", metrics.precision_score(y, predictions))
-        print("  F1", metrics.f1_score(y, predictions))
-        print("  MCC", metrics.matthews_corrcoef(y, predictions))
-        print("  Precision", metrics.precision_score(y, predictions))
-        print("  AUC", metrics.auc(roc_x, roc_y))
-        print("\n")
+        print_log(f"  Recall {metrics.recall_score(y, predictions)}")
+        print_log(f"  Precision {metrics.precision_score(y, predictions)}")
+        print_log(f"  F1 {metrics.f1_score(y, predictions)}")
+        print_log(f"  MCC {metrics.matthews_corrcoef(y, predictions)}")
+        print_log(f"  AUC {metrics.auc(roc_x, roc_y)}")
+        print_log("")
+    print_log("")
