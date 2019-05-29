@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 import pandas as pd
 
 # What datasets are there?
-csvs = filter(lambda f: f.endswith("H3.csv"), os.listdir("data"))
+csvs = filter(lambda f: f.endswith(".csv"), os.listdir("data"))
 
 for csv in csvs:
     # Get dataset
@@ -17,8 +17,13 @@ for csv in csvs:
     X = df.iloc[:, 2:-1].values
     y = df.iloc[:, -1].values
 
+    # Define hyperparameters
+    hyperparameters = {
+     "kernel": "rbf", "gamma": "scale", "class_weight": {1: 5}, "probability": True
+    }
+
     # Create model
-    model = svm.SVC(kernel="rbf", gamma="scale", class_weight={1: 8}, probability=True)
+    model = svm.SVC(**hyperparameters)
 
     # Fit model
     a = model.fit(X, y)
@@ -38,8 +43,16 @@ for csv in csvs:
     plt.legend(loc="lower right")
     plt.title(f"{name} ROC")
     plt.savefig(name + ".png")
+    plt.clf()
 
     # Get metrics
+    for key, value in hyperparameters.items():
+        print(f"{key}: {value}")
+    print()
     print("Recall", metrics.recall_score(y, predictions))
     print("Precision", metrics.precision_score(y, predictions))
+    print("F1", metrics.f1_score(y, predictions))
+    print("MCC", metrics.matthews_corrcoef(y, predictions))
+    print("Precision", metrics.precision_score(y, predictions))
     print("AUC", metrics.auc(roc_x, roc_y))
+    print("\n")
