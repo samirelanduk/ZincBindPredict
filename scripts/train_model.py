@@ -1,13 +1,22 @@
 import os
+import sys
 from datetime import datetime
-from sklearn import svm
 import sklearn.metrics as metrics
 from sklearn.model_selection import train_test_split
 import matplotlib.pyplot as plt
 import pandas as pd
 
+# Get model and hyperparameters
+if len(sys.argv) == 1:
+    print("Where are the hyperparameters?")
+    sys.exit()
+from importlib import import_module
+params = import_module(sys.argv[1])
 
-def print_log(string="", log=f"logs/scores_{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}.log"):
+
+# Define log function
+log_name = f"logs/{params.MODEL_NAME}_{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}.log"
+def print_log(string="", log=log_name):
     with open(log, "a") as f:
         f.write(string + "\n")
         print(string)
@@ -15,9 +24,7 @@ def print_log(string="", log=f"logs/scores_{datetime.now().strftime('%Y-%m-%d_%H
 
 # Define hyperparameters
 print_log("HYPERPARAMETERS")
-hyperparameters = {
- "kernel": "rbf", "gamma": "scale", "class_weight": {1: 5}, "probability": True
-}
+hyperparameters = params.HYPERPARAMETERS
 for key, value in hyperparameters.items():
     print_log(f"{key}: {value}")
 print_log("\n")
@@ -41,7 +48,7 @@ for csv in csvs:
     )
 
     # Create model
-    model = svm.SVC(**hyperparameters)
+    model = params.MODEL(**hyperparameters)
 
     # Fit model
     a = model.fit(X_train, y_train)
@@ -52,8 +59,8 @@ for csv in csvs:
         predictions = model.predict(X)
 
         # Get probabilities
-        probabilities = model.decision_function(X)
-        roc_x, roc_y, _ = metrics.roc_curve(y, probabilities)
+        probabilities = model.predict_proba(X)
+        roc_x, roc_y, _ = metrics.roc_curve(y, probabilities[:, 1])
 
         # Save chart
         plt.plot(roc_x, roc_y, label="ROC curve")
@@ -62,7 +69,7 @@ for csv in csvs:
         plt.ylabel("True Positive Rate")
         plt.legend(loc="lower right")
         plt.title(f"{name} ROC")
-        plt.savefig(name + ".png")
+        plt.savefig(f"{params.MODEL_NAME}-{name}-ROC.png")
         plt.clf()
 
         # Get metrics
