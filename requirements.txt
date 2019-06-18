@@ -1,5 +1,4 @@
-django
-graphene-django
+django==2.2.2
 
 numpy
 pandas
