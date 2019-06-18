@@ -1,4 +1,5 @@
 django==2.2.2
+atomium>=1.0
 
 numpy
 pandas
