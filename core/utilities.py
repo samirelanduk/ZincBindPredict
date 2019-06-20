@@ -45,4 +45,6 @@ def residues_to_sample(residues):
     sample["ca_std"] = np.std(alphas)
     sample["mean_cb"] = sum(betas) / len(betas)
     sample["cb_std"] = np.std(betas)
+    sample["helix"] = len([r for r in residues if r.helix])
+    sample["strand"] = len([r for r in residues if r.strand])
     return sample

@@ -1,4 +1,4 @@
-from atomium import Residue, Atom
+from atomium import Residue, Atom, Chain
 from unittest import TestCase
 from unittest.mock import patch, Mock
 from core.utilities import *
@@ -155,13 +155,19 @@ class ResiduesToSampleTests(TestCase):
         self.res4 = Residue(
          Atom("C", 2, 0, 0, 1, "CA", 0, 0, []), Atom("C", 1, 0, 0, 1, "CB", 0, 0, [])
         )
+        Chain(
+         self.res1, self.res2, self.res3, self.res4,
+         helices=[[self.res2, self.res3]], strands=[[self.res4]]
+        )
         
 
     def test_can_get_sample_dict(self):
         sample = residues_to_sample((self.res1, self.res2, self.res3, self.res4))
-        self.assertEqual(sample.keys(), {"mean_ca", "ca_std", "mean_cb", "cb_std"})
+        self.assertEqual(sample.keys(), {"mean_ca", "ca_std", "mean_cb", "cb_std", "helix", "strand"})
         self.assertAlmostEqual(sample["mean_ca"], 3.218, delta=0.005)
         self.assertAlmostEqual(sample["ca_std"], 0.552, delta=0.005)
         self.assertAlmostEqual(sample["mean_cb"], 1.609, delta=0.005)
         self.assertAlmostEqual(sample["cb_std"], 0.276, delta=0.005)
+        self.assertEqual(sample["helix"], 2)
+        self.assertEqual(sample["strand"], 1)
         
