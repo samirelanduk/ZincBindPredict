@@ -37,9 +37,12 @@ def residues_to_sample(residues):
     by the models."""
 
     sample = {}
-    alphas = []
+    alphas, betas = [], []
     for res1, res2 in combinations(residues, 2):
         alphas.append(res1.atom(name="CA").distance_to(res2.atom(name="CA")))
+        betas.append(res1.atom(name="CB").distance_to(res2.atom(name="CB")))
     sample["mean_ca"] = sum(alphas) / len(alphas)
     sample["ca_std"] = np.std(alphas)
+    sample["mean_cb"] = sum(betas) / len(betas)
+    sample["cb_std"] = np.std(betas)
     return sample

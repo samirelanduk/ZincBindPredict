@@ -1,3 +1,4 @@
+from atomium import Residue, Atom
 from unittest import TestCase
 from unittest.mock import patch, Mock
 from core.utilities import *
@@ -142,21 +143,26 @@ class ModelToResidueCombinationsTests(TestCase):
 class ResiduesToSampleTests(TestCase):
 
     def setUp(self):
-        for r in range(1, 5):
-            res = Mock()
-            setattr(self, f"res{r}", res)
-            ca = Mock()
-            res.atom.return_value = ca
-            ca.distance_to.side_effect = [1, 1.5, 2]
+        self.res1 = Residue(
+         Atom("C", 0, -2, 0, 1, "CA", 0, 0, []), Atom("C", 0, -1, 0, 1, "CB", 0, 0, [])
+        )
+        self.res2 = Residue(
+         Atom("C", 0, 2, 0, 1, "CA", 0, 0, []), Atom("C", 0, 1, 0, 1, "CB", 0, 0, [])
+        )
+        self.res3 = Residue(
+         Atom("C", -2, 0, 0, 1, "CA", 0, 0, []), Atom("C", -1, 0, 0, 1, "CB", 0, 0, [])
+        )
+        self.res4 = Residue(
+         Atom("C", 2, 0, 0, 1, "CA", 0, 0, []), Atom("C", 1, 0, 0, 1, "CB", 0, 0, [])
+        )
         
 
     def test_can_get_sample_dict(self):
         sample = residues_to_sample((self.res1, self.res2, self.res3, self.res4))
-        self.res1.atom.assert_called_with(name="CA")
-        self.res2.atom.assert_called_with(name="CA")
-        self.res3.atom.assert_called_with(name="CA")
-        self.res4.atom.assert_called_with(name="CA")
-        self.assertEqual(sample.keys(), {"mean_ca", "ca_std"})
-        self.assertEqual(sample["mean_ca"], 4 / 3)
-        self.assertAlmostEqual(sample["ca_std"], 0.372, delta=0.005)
+  
+        self.assertEqual(sample.keys(), {"mean_ca", "ca_std", "mean_cb", "cb_std"})
+        self.assertAlmostEqual(sample["mean_ca"], 3.218, delta=0.005)
+        self.assertAlmostEqual(sample["ca_std"], 0.552, delta=0.005)
+        self.assertAlmostEqual(sample["mean_cb"], 1.609, delta=0.005)
+        self.assertAlmostEqual(sample["cb_std"], 0.276, delta=0.005)
         
