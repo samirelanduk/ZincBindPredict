@@ -1,4 +1,5 @@
 from itertools import combinations
+import numpy as np
 
 def split_family(family):
     """Takes a family such as 'C3H1' and splits it into subfamilies such as 'C3'
@@ -32,5 +33,13 @@ def model_to_residue_combos(model, family):
 
 
 def residues_to_sample(residues):
+    """Converts a set of residues into a dict of values ready to be classified
+    by the models."""
+
     sample = {}
+    alphas = []
+    for res1, res2 in combinations(residues, 2):
+        alphas.append(res1.atom(name="CA").distance_to(res2.atom(name="CA")))
+    sample["mean_ca"] = sum(alphas) / len(alphas)
+    sample["ca_std"] = np.std(alphas)
     return sample
