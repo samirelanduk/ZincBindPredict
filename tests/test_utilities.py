@@ -162,8 +162,9 @@ class ResiduesToSampleTests(TestCase):
         
 
     def test_can_get_sample_dict(self):
-        sample = residues_to_sample((self.res1, self.res2, self.res3, self.res4))
-        self.assertEqual(sample.keys(), {"mean_ca", "ca_std", "mean_cb", "cb_std", "helix", "strand"})
+        sample = residues_to_sample((self.res1, self.res2, self.res3, self.res4), "X1")
+        self.assertEqual(sample.keys(), {"site", "mean_ca", "ca_std", "mean_cb", "cb_std", "helix", "strand"})
+        self.assertEqual(sample["site"], "X1")
         self.assertAlmostEqual(sample["mean_ca"], 3.218, delta=0.005)
         self.assertAlmostEqual(sample["ca_std"], 0.552, delta=0.005)
         self.assertAlmostEqual(sample["mean_cb"], 1.609, delta=0.005)
