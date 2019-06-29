@@ -7,7 +7,7 @@ import sys
 sys.path.append("../zincbindpredict")
 from core.utilities import residues_to_sample, model_to_residue_combos
 
-API_URL = "http://localhost:8030/"
+API_URL = "https://api.zincbind.net/"
 
 QUERY = """
 query ZincSites($family: String) { pdbs(resolution__lt: 2) { edges { node {
@@ -36,7 +36,7 @@ def main():
         samples = []
 
         # Go through each PDB and get the relevant model
-        for pdb in tqdm(pdbs[:2]):
+        for pdb in tqdm(pdbs):
             model = atomium.fetch(pdb["id"]).generate_assembly(pdb["assembly"])
             seen_ids = []
 
