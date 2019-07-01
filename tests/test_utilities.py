@@ -139,6 +139,20 @@ class ModelToResidueCombinationsTests(TestCase):
         self.assertEqual(combos, ())
 
 
+    def test_can_limit_number_of_combinations_returned(self):
+        self.mock_split.side_effect = lambda family: ["H2", "C2", "E2"]
+        self.model.residues.side_effect = [["H1", "H2", "H3"], ["C1", "C2", "C3"], ["E1", "E2", "E3"]]
+        combos = model_to_residue_combos(self.model, "H2C2E2", limit=4)
+        self.mock_split.assert_called_with("H2C2E2")
+        self.model.residues.assert_any_call(code="H")
+        self.model.residues.assert_any_call(code="C")
+        self.model.residues.assert_any_call(code="E")
+        self.assertEqual(combos, (
+         ("H1", "H2", "C1", "C2", "E1", "E2"), ("H1", "H2", "C1", "C2", "E1", "E3"),
+         ("H1", "H2", "C1", "C2", "E2", "E3"), ("H1", "H2", "C1", "C3", "E1", "E2"),
+        ))
+
+
 
 class ResiduesToSampleTests(TestCase):
 
@@ -163,12 +177,19 @@ class ResiduesToSampleTests(TestCase):
 
     def test_can_get_sample_dict(self):
         sample = residues_to_sample((self.res1, self.res2, self.res3, self.res4), "X1")
-        self.assertEqual(sample.keys(), {"site", "mean_ca", "ca_std", "mean_cb", "cb_std", "helix", "strand"})
+        self.assertEqual(sample.keys(), {
+         "site", "ca_mean", "ca_std", "ca_max", "ca_min", "cb_mean", "cb_std",
+         "cb_max", "cb_min", "helix", "strand"
+        })
         self.assertEqual(sample["site"], "X1")
-        self.assertAlmostEqual(sample["mean_ca"], 3.218, delta=0.005)
+        self.assertAlmostEqual(sample["ca_mean"], 3.218, delta=0.005)
         self.assertAlmostEqual(sample["ca_std"], 0.552, delta=0.005)
-        self.assertAlmostEqual(sample["mean_cb"], 1.609, delta=0.005)
+        self.assertEqual(sample["ca_max"], 4)
+        self.assertAlmostEqual(sample["ca_min"], 2.828, delta=0.005)
+        self.assertAlmostEqual(sample["cb_mean"], 1.609, delta=0.005)
         self.assertAlmostEqual(sample["cb_std"], 0.276, delta=0.005)
+        self.assertEqual(sample["cb_max"], 2)
+        self.assertAlmostEqual(sample["cb_min"], 1.414, delta=0.005)
         self.assertEqual(sample["helix"], 2)
         self.assertEqual(sample["strand"], 1)
         

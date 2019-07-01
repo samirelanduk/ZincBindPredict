@@ -1,4 +1,4 @@
-from itertools import combinations
+from itertools import combinations, product
 import numpy as np
 
 def split_family(family):
@@ -15,22 +15,24 @@ def split_family(family):
     return subfamilies
 
 
-def model_to_residue_combos(model, family):
+def model_to_residue_combos(model, family, limit=None):
     """Takes an atomium model and returns all combinations of residues which
-    match the family given."""
+    match the family given. You can limit the number of combinations it returns
+    to prevent catastrophic consumption of residues if you want."""
 
     subfamilies = split_family(family)
     residue_combos = []
     for subfamily in subfamilies:
         residues = model.residues(code=subfamily[0])
-        residue_combos.append(tuple(combinations(residues, int(subfamily[1:]))))
-    while len(residue_combos) > 1:
-        residue_combos.insert(0, tuple(
-         x + y for x in residue_combos[0] for y in residue_combos[1]
-        ))
-        for _ in range(2): residue_combos.pop(1)
-    return residue_combos[0] if residue_combos else ()
-
+        residue_combos.append(combinations(residues, int(subfamily[1:])))
+    initial_combos = product(*residue_combos)
+    count, combos = 1, []
+    for combo in initial_combos:
+        combos.append(tuple([item for sublist in combo for item in sublist]))
+        if limit and count == limit: break
+        count += 1
+    return tuple(combos)
+    
 
 def residues_to_sample(residues, site_id):
     """Converts a set of residues into a dict of values ready to be classified

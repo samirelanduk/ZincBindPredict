@@ -25,6 +25,7 @@ def main():
         print(f"Getting data for {family} binding sites")
         print("Fetching data from server...")
         results = client.execute(QUERY, variables={"family": family})
+        with open(f"data/{family}.csv", "w") as f: f.write("")
 
         # Remove PDBs with no relevant binding sites
         pdbs = [edge["node"] for edge in results["data"]["pdbs"]["edges"]
@@ -32,13 +33,10 @@ def main():
         sites = sum([len(pdb["zincsites"]["edges"]) for pdb in pdbs])
         print(f"Found {len(pdbs)} PDBs with {sites} relevant binding sites")
 
-        # Create list of data points that will be built up
-        samples = []
-
         # Go through each PDB and get the relevant model
-        for pdb in tqdm(pdbs):
+        for i, pdb in enumerate(tqdm(pdbs)):
             model = atomium.fetch(pdb["id"]).generate_assembly(pdb["assembly"])
-            seen_ids = []
+            samples, seen_ids = [], []
 
             # Get the positive cases
             for edge in pdb["zincsites"]["edges"]:
@@ -65,7 +63,7 @@ def main():
                     samples.append(sample)
 
             # Get the negative cases
-            for combo in model_to_residue_combos(model, family):
+            for combo in model_to_residue_combos(model, family, limit=len(samples) * 100):
                 ids = set([res.id for res in combo])
                 if ids not in seen_ids:
                     sample = residues_to_sample(combo, f"{pdb['id']}-N")
@@ -73,12 +71,12 @@ def main():
                         sample["positive"] = -1
                         samples.append(sample)
                 
-        # Save samples to CSV
-        csv_lines = [",".join(samples[0].keys()) + "\n"]
-        for sample in samples:
-            csv_lines.append(",".join([str(v) for v in sample.values()]) + "\n")
-        with open(f"data/{family}.csv", "w") as f:
-            f.writelines(csv_lines)
+            # Save samples to CSV
+            csv_lines = [",".join(samples[0].keys()) + "\n"] if i == 0 else []
+            for sample in samples:
+                csv_lines.append(",".join([str(v) for v in sample.values()]) + "\n")
+            with open(f"data/{family}.csv", "a") as f:
+                f.writelines(csv_lines)
         print()
 
 
