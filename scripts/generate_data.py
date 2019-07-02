@@ -45,13 +45,15 @@ def main():
                  if e["node"]["chainSignature"]]
                 
                 # Get atomium residues
-                residues = [[r for r in model.residues(id=residue["atomiumId"]) 
-                 if r.atom(name="CA").location == (
-                  residue["atoms"]["edges"][0]["node"]["x"],
-                  residue["atoms"]["edges"][0]["node"]["y"],
-                  residue["atoms"]["edges"][0]["node"]["z"]
-                 )
-                ][0] for residue in site["residues"]]
+                try:
+                    residues = [[r for r in model.residues(id=residue["atomiumId"]) 
+                    if r.atom(name="CA").location == (
+                    residue["atoms"]["edges"][0]["node"]["x"],
+                    residue["atoms"]["edges"][0]["node"]["y"],
+                    residue["atoms"]["edges"][0]["node"]["z"]
+                    )
+                    ][0] for residue in site["residues"]]
+                except: continue
                 
                 # Make note of these residues for later
                 seen_ids.append(set([res.id for res in residues]))
