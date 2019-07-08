@@ -32,6 +32,23 @@ def model_to_residue_combos(model, family, limit=None):
         if limit and count == limit: break
         count += 1
     return tuple(combos)
+
+
+def sequence_to_residue_combos(sequence, family, limit=None):
+    """"""
+
+    subfamilies = split_family(family)
+    residue_combos = []
+    for subfamily in subfamilies:
+        indices = [i for i, r in enumerate(sequence.upper()) if r == subfamily[0]]
+        residue_combos.append(combinations(indices, int(subfamily[1:])))
+    initial_combos = product(*residue_combos)
+    count, combos = 1, []
+    for combo in initial_combos:
+        combos.append(tuple([item for sublist in combo for item in sublist]))
+        if limit and count == limit: break
+        count += 1
+    return tuple(combos)
     
 
 def residues_to_sample(residues, site_id):
@@ -57,3 +74,16 @@ def residues_to_sample(residues, site_id):
         sample["strand"] = len([r for r in residues if r.strand])
         return sample
     except: return None
+
+
+def sequence_to_sample(sequence, site_id):
+    sample = {}
+    sample["site"] = site_id
+    caps = []
+    for index, char in enumerate(sequence):
+        if char.isupper(): caps.append(index)
+    spacers = [second - first for first, second in zip(caps[:-1], caps[1:])]
+    if spacers:
+        sample["min_spacer"], sample["max_spacer"] = min(spacers), max(spacers)
+    else: sample["min_spacer"], sample["max_spacer"] = 0, 0
+    return sample
