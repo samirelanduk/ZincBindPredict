@@ -48,7 +48,7 @@ def sequence_to_residue_combos(sequence, family, limit=None):
         combos.append(tuple([item for sublist in combo for item in sublist]))
         if limit and count == limit: break
         count += 1
-    return tuple(combos)
+    return ["".join([char.upper() if i in combo else char for i, char in enumerate(sequence.lower())]) for combo in combos]
     
 
 def residues_to_sample(residues, site_id):
@@ -82,8 +82,9 @@ def sequence_to_sample(sequence, site_id):
     caps = []
     for index, char in enumerate(sequence):
         if char.isupper(): caps.append(index)
+    
     spacers = [second - first for first, second in zip(caps[:-1], caps[1:])]
-    if spacers:
-        sample["min_spacer"], sample["max_spacer"] = min(spacers), max(spacers)
-    else: sample["min_spacer"], sample["max_spacer"] = 0, 0
+    sample["min_spacer"], sample["max_spacer"] = min(spacers), max(spacers)
+    for i, spacer in enumerate(spacers, start=1):
+        sample[f"spacer_{i}"] = spacer
     return sample
