@@ -35,7 +35,9 @@ def model_to_residue_combos(model, family, limit=None):
 
 
 def sequence_to_residue_combos(sequence, family, limit=None):
-    """"""
+    """Takes a sequence and returns all combinations of residues which
+    match the family given. You can limit the number of combinations it returns
+    to prevent catastrophic consumption of residues if you want."""
 
     subfamilies = split_family(family)
     residue_combos = []
@@ -48,7 +50,8 @@ def sequence_to_residue_combos(sequence, family, limit=None):
         combos.append(tuple([item for sublist in combo for item in sublist]))
         if limit and count == limit: break
         count += 1
-    return ["".join([char.upper() if i in combo else char for i, char in enumerate(sequence.lower())]) for combo in combos]
+    return ["".join([char.upper() if i in combo else char for i, char
+     in enumerate(sequence.lower())]) for combo in combos]
     
 
 def residues_to_sample(residues, site_id):
@@ -77,13 +80,15 @@ def residues_to_sample(residues, site_id):
 
 
 def sequence_to_sample(sequence, site_id):
+    """Converts a sequence into a dict of values ready to be classified
+    by the models."""
+
     sample = {}
     sample["site"] = site_id
     caps = []
     for index, char in enumerate(sequence):
         if char.isupper(): caps.append(index)
-    
-    spacers = [second - first for first, second in zip(caps[:-1], caps[1:])]
+    spacers = [(second - first) - 1 for first, second in zip(caps[:-1], caps[1:])]
     sample["min_spacer"], sample["max_spacer"] = min(spacers), max(spacers)
     for i, spacer in enumerate(spacers, start=1):
         sample[f"spacer_{i}"] = spacer

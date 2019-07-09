@@ -154,6 +154,76 @@ class ModelToResidueCombinationsTests(TestCase):
 
 
 
+class SequenceToResidueComboTests(TestCase):
+
+    def setUp(self):
+        self.patch1 = patch("core.utilities.split_family")
+        self.mock_split = self.patch1.start()
+        self.mock_split.side_effect = lambda family: [family]
+    
+
+    def tearDown(self):
+        self.patch1.stop()
+
+
+    def test_can_handle_no_matching_residues(self):
+        combos = sequence_to_residue_combos("abcd", "H3")
+        self.mock_split.assert_called_with("H3")
+        self.assertEqual(combos, [])
+    
+
+    def test_can_handle_insufficient_matching_residues(self):
+        combos = sequence_to_residue_combos("abcHdeHfgi", "H3")
+        self.mock_split.assert_called_with("H3")
+        self.assertEqual(combos, [])
+    
+
+    def test_can_return_single_combination(self):
+        combos = sequence_to_residue_combos("abcHdeHfghi", "H3")
+        self.mock_split.assert_called_with("H3")
+        self.assertEqual(combos, ["abcHdeHfgHi"])
+    
+
+    def test_can_return_many_combinations(self):
+        combos = sequence_to_residue_combos("abcHdeHfghihsdsd", "H3")
+        self.mock_split.assert_called_with("H3")
+        self.assertEqual(combos, [
+         "abcHdeHfgHihsdsd", "abcHdeHfghiHsdsd", "abcHdehfgHiHsdsd", "abchdeHfgHiHsdsd"
+        ])
+    
+
+    def test_can_return_combinations_from_different_subfamilies(self):
+        self.mock_split.side_effect = lambda family: ["H2", "C3"]
+        combos = sequence_to_residue_combos("xhxyzhxyzxhxycxyzcxyzxyzcxycxyz", "H2C3")
+        self.mock_split.assert_called_with("H2C3")
+        self.assertEqual(combos, [
+         "xHxyzHxyzxhxyCxyzCxyzxyzCxycxyz", "xHxyzHxyzxhxyCxyzCxyzxyzcxyCxyz",
+         "xHxyzHxyzxhxyCxyzcxyzxyzCxyCxyz", "xHxyzHxyzxhxycxyzCxyzxyzCxyCxyz",
+         "xHxyzhxyzxHxyCxyzCxyzxyzCxycxyz", "xHxyzhxyzxHxyCxyzCxyzxyzcxyCxyz",
+         "xHxyzhxyzxHxyCxyzcxyzxyzCxyCxyz", "xHxyzhxyzxHxycxyzCxyzxyzCxyCxyz",
+         "xhxyzHxyzxHxyCxyzCxyzxyzCxycxyz", "xhxyzHxyzxHxyCxyzCxyzxyzcxyCxyz",
+         "xhxyzHxyzxHxyCxyzcxyzxyzCxyCxyz", "xhxyzHxyzxHxycxyzCxyzxyzCxyCxyz"
+        ])
+    
+
+    def test_can_handle_insufficient_residues_in_one_subfamily(self):
+        self.mock_split.side_effect = lambda family: ["H2", "C2", "E2"]
+        combos = sequence_to_residue_combos("xhxhxhxcxexexe", "H2C2E2")
+        self.mock_split.assert_called_with("H2C2E2")
+        self.assertEqual(combos, [])
+    
+
+    def test_can_limit_number_of_combinations_returned(self):
+        self.mock_split.side_effect = lambda family: ["H2", "C3"]
+        combos = sequence_to_residue_combos("xhxyzhxyzxhxycxyzcxyzxyzcxycxyz", "H2C3", limit=4)
+        self.mock_split.assert_called_with("H2C3")
+        self.assertEqual(combos, [
+         "xHxyzHxyzxhxyCxyzCxyzxyzCxycxyz", "xHxyzHxyzxhxyCxyzCxyzxyzcxyCxyz",
+         "xHxyzHxyzxhxyCxyzcxyzxyzCxyCxyz", "xHxyzHxyzxhxycxyzCxyzxyzCxyCxyz",
+        ])
+
+
+
 class ResiduesToSampleTests(TestCase):
 
     def setUp(self):
@@ -192,4 +262,20 @@ class ResiduesToSampleTests(TestCase):
         self.assertAlmostEqual(sample["cb_min"], 1.414, delta=0.005)
         self.assertEqual(sample["helix"], 2)
         self.assertEqual(sample["strand"], 1)
+
+
+
+class SequenceToSampleTests(TestCase):
+
+    def test_can_get_sequence_dict(self):
+        sample = sequence_to_sample("abcHsdHaslkdHoiuhdsHasw", "X1")
+        self.assertEqual(sample.keys(), {
+         "site", "min_spacer", "max_spacer", "spacer_1", "spacer_2", "spacer_3"
+        })
+        self.assertEqual(sample["site"], "X1")
+        self.assertEqual(sample["min_spacer"], 2)
+        self.assertEqual(sample["max_spacer"], 6)
+        self.assertEqual(sample["spacer_1"], 2)
+        self.assertEqual(sample["spacer_2"], 5)
+        self.assertEqual(sample["spacer_3"], 6)
         
