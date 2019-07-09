@@ -44,19 +44,24 @@ def main():
         # Go through each chain
         for i, chain_pair in enumerate(tqdm(chains.items())):
             chain_id, chain = chain_pair
-            samples = []
+            samples, positives = [], []
 
             # Get the positive cases
             for site_id, site in chain["sites"].items():
                 sample = sequence_to_sample(site, site_id)
                 sample["positive"] = 1
                 samples.append(sample)
+                positives.append(site)
             
             # Get the negative cases
-            for sequence in sequence_to_residue_combos(chain["sequence"], family, limit=len(samples) * 100):
+            neg_count = 0
+            for sequence in sequence_to_residue_combos(chain["sequence"], family, limit=len(samples) * 200):
+                if sequence in positives: continue
                 sample = sequence_to_sample(sequence, f"{chain_id}-N")
                 sample["positive"] = -1
                 samples.append(sample)
+                neg_count += 1
+                if neg_count == 100: break
 
             # Save samples to CSV
             csv_lines = [",".join(samples[0].keys()) + "\n"] if i == 0 else []
