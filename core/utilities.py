@@ -35,6 +35,20 @@ def update_data_file(family, samples=None):
         with open(path, "w") as f: f.write("")
 
 
+def split_family(family):
+    """Takes a family such as 'C3H1' and splits it into subfamilies such as 'C3'
+    and 'H1'."""
+
+    subfamilies, subfamily = [], ""
+    for char in family:
+        if char.isalpha() and subfamily:
+            subfamilies.append(subfamily)
+            subfamily = ""
+        subfamily += char
+    subfamilies.append(subfamily)
+    return subfamilies
+
+
 def get_residues_from_model(model, residues):
     """Takes a model, and some residues in JSON form, and then finds the
     matching residues in the model.
@@ -50,20 +64,6 @@ def get_residues_from_model(model, residues):
         at_residues.append(matching[0])
     return at_residues
 
-
-def split_family(family):
-    """Takes a family such as 'C3H1' and splits it into subfamilies such as 'C3'
-    and 'H1'."""
-
-    subfamilies, subfamily = [], ""
-    for char in family:
-        if char.isalpha() and subfamily:
-            subfamilies.append(subfamily)
-            subfamily = ""
-        subfamily += char
-    subfamilies.append(subfamily)
-    return subfamilies
-    
 
 def count_combinations(model, family):
     """Takes a model and a family string, and returns the number of matching
@@ -147,7 +147,7 @@ def sequence_to_residue_combos(sequence, family, limit=None):
     return ["".join([char.upper() if i in combo else char for i, char
      in enumerate(sequence.lower())]) for combo in combos]
 
-     
+
 def sequence_to_sample(sequence, site_id):
     """Converts a sequence into a dict of values ready to be classified
     by the models."""

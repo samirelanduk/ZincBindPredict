@@ -19,7 +19,7 @@ query ZincSites($family: String) { pdbs(resolution__lt: 2) { edges { node {
 } } } }
 """
 
-FAMILIES = ["H3", "C4", "C2H2", "C3H1", "D1H2", "E1H2"][:1]
+FAMILIES = ["H3", "C4", "C2H2", "C3H1", "D1H2", "E1H2"]
 
 NEGATIVES = 100
 

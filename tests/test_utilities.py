@@ -1,6 +1,6 @@
 from atomium import Residue, Atom, Chain
 from unittest import TestCase
-from unittest.mock import patch, Mock
+from unittest.mock import patch, Mock, MagicMock
 from core.utilities import *
 
 class DataFetchingTests(TestCase):
@@ -23,6 +23,52 @@ class DataFetchingTests(TestCase):
         ])
 
 
+
+class DataFileUpdatingTests(TestCase):
+
+    def setUp(self):
+        self.patch1 = patch("builtins.open")
+        self.mock_open = self.patch1.start()
+        open_return = MagicMock()
+        mock_file = Mock()
+        self.mock_write = MagicMock()
+        mock_file.write = self.mock_write
+        open_return.__enter__.return_value = mock_file
+        self.mock_writelines = MagicMock()
+        mock_file.writelines = self.mock_writelines
+        self.mock_open.return_value = open_return
+        self.patch2 = patch("os.path.getsize")
+        self.mock_size = self.patch2.start()
+        self.mock_size.return_value = 0
+    
+
+    def tearDown(self):
+        self.patch1.stop()
+        self.patch2.stop()
+        
+
+    def test_can_save_empty_file(self):
+        update_data_file("X1")
+        self.mock_open.assert_called_with("data/X1.csv", "w")
+        self.mock_write.assert_called_with("")
+    
+
+    def test_can_save_samples(self):
+        self.mock_size.return_value = 10
+        update_data_file("X1", samples=[{"A": 1, "B": 2}, {"A": 3, "B": 4}])
+        self.mock_size.assert_called_with("data/X1.csv")
+        self.mock_open.assert_called_with("data/X1.csv", "a")
+        self.mock_writelines.assert_called_with(["1,2\n", "3,4\n"])
+        
+    
+    def test_can_save_samples_with_header(self):
+        update_data_file("X1", samples=[{"A": 1, "B": 2}, {"A": 3, "B": 4}])
+        self.mock_size.assert_called_with("data/X1.csv")
+        self.mock_open.assert_called_with("data/X1.csv", "a")
+        self.mock_writelines.assert_called_with(["A,B\n", "1,2\n", "3,4\n"])
+
+
+
 class FamilySplittingTests(TestCase):
 
     def test_can_split_simple_family(self):
@@ -33,6 +79,29 @@ class FamilySplittingTests(TestCase):
     def test_can_split_simple_families_with_different_residues(self):
         self.assertEqual(split_family("C4H2"), ["C4", "H2"])
         self.assertEqual(split_family("A12B6C176D1"), ["A12", "B6", "C176", "D1"])
+
+
+
+class ResiduesFromModelTests(TestCase):
+
+    def setUp(self):
+        self.model = Mock()
+        self.residues = [
+         {"atomiumId": 1, "atoms": [{"x": 1, "y": 2, "z": 3}]},
+         {"atomiumId": 2, "atoms": [{"x": 4, "y": 5, "z": 6}]},
+        ]
+        self.res1, self.res2, self.res3 = Mock(), Mock(), Mock()
+        self.res1.atom.return_value = Mock(location=(1, 2, 3))
+        self.res2.atom.return_value = Mock(location=(7, 8, 9))
+        self.res3.atom.return_value = Mock(location=(4, 5, 6))
+        self.model.residues.side_effect = [
+         [self.res1], [self.res2, self.res3]
+        ]
+
+
+    def test_can_get_residues(self):
+        residues = get_residues_from_model(self.model, self.residues)
+        self.assertEqual(residues, [self.res1, self.res3])
 
 
 
@@ -124,12 +193,16 @@ class ModelCombinationsCountTests(TestCase):
         self.assertEqual(count, 0)
 
 
-'''
+
 class ModelToResidueCombinationsTests(TestCase):
 
     def setUp(self):
-        self.patch1 = patch("core.utilities.split_family")
-        self.mock_split = self.patch1.start()
+        self.patch1 = patch("core.utilities.count_combinations")
+        self.mock_count = self.patch1.start()
+        self.patch2 = patch("random.sample")
+        self.mock_sample = self.patch2.start()
+        self.patch3 = patch("core.utilities.split_family")
+        self.mock_split = self.patch3.start()
         self.mock_split.side_effect = lambda family: [family]
         self.model = Mock()
         self.model.residues.side_effect = lambda code: []
@@ -137,107 +210,105 @@ class ModelToResidueCombinationsTests(TestCase):
 
     def tearDown(self):
         self.patch1.stop()
+        self.patch2.stop()
+        self.patch3.stop()
 
 
     def test_can_handle_no_matching_residues(self):
+        self.mock_count.return_value = 0
         self.model.residues.side_effect = lambda code: []
         combos = model_to_residue_combos(self.model, "H3")
+        self.mock_count.assert_called_with(self.model, "H3")
         self.mock_split.assert_called_with("H3")
         self.model.residues.assert_called_with(code="H")
-        self.assertEqual(combos, ())
+        self.assertEqual(combos, [])
     
 
     def test_can_handle_insufficient_matching_residues(self):
+        self.mock_count.return_value = 0
         self.model.residues.side_effect = lambda code: ["R1", "R2"]
         combos = model_to_residue_combos(self.model, "H3")
+        self.mock_count.assert_called_with(self.model, "H3")
         self.mock_split.assert_called_with("H3")
         self.model.residues.assert_called_with(code="H")
-        self.assertEqual(combos, ())
+        self.assertEqual(combos, [])
     
 
     def test_can_return_single_combination(self):
-        self.model.residues.side_effect = lambda code: ["R1", "R2", "R3"]
+        self.mock_count.return_value = 1
+        residues = Mock(), Mock(), Mock()
+        self.model.residues.side_effect = lambda code: residues
         combos = model_to_residue_combos(self.model, "H3")
+        self.mock_count.assert_called_with(self.model, "H3")
         self.mock_split.assert_called_with("H3")
         self.model.residues.assert_called_with(code="H")
-        self.assertEqual(combos, (("R1", "R2", "R3"),))
+        self.assertEqual(combos, [residues])
     
 
     def test_can_return_many_combinations(self):
-        self.model.residues.side_effect = lambda code: ["R1", "R2", "R3", "R4", "R5"]
+        self.mock_count.return_value = 10
+        residues = Mock(), Mock(), Mock(), Mock(), Mock()
+        self.model.residues.side_effect = lambda code: residues
         combos = model_to_residue_combos(self.model, "H3")
+        self.mock_count.assert_called_with(self.model, "H3")
         self.mock_split.assert_called_with("H3")
         self.model.residues.assert_called_with(code="H")
-        self.assertEqual(combos, (
-         ("R1", "R2", "R3"), ("R1", "R2", "R4"), ("R1", "R2", "R5"),
-         ("R1", "R3", "R4"), ("R1", "R3", "R5"), ("R1", "R4", "R5"),
-         ("R2", "R3", "R4"), ("R2", "R3", "R5"), ("R2", "R4", "R5"),
-         ("R3", "R4", "R5")
-        ))
-        combos = model_to_residue_combos(self.model, "C4")
-        self.mock_split.assert_called_with("C4")
-        self.model.residues.assert_called_with(code="C")
-        self.assertEqual(combos, (
-         ("R1", "R2", "R3", "R4"), ("R1", "R2", "R3", "R5"), ("R1", "R2", "R4", "R5"),
-         ("R1", "R3", "R4", "R5"), ("R2", "R3", "R4", "R5")
-        ))
+        self.assertEqual(combos, [
+         (residues[0], residues[1], residues[2]),
+         (residues[0], residues[1], residues[3]),
+         (residues[0], residues[1], residues[4]),
+         (residues[0], residues[2], residues[3]),
+         (residues[0], residues[2], residues[4]),
+         (residues[0], residues[3], residues[4]),
+         (residues[1], residues[2], residues[3]),
+         (residues[1], residues[2], residues[4]),
+         (residues[1], residues[3], residues[4]),
+         (residues[2], residues[3], residues[4]),
+        ])
     
-
     def test_can_return_combinations_from_different_subfamilies(self):
-        self.mock_split.side_effect = lambda family: ["H2", "C3"]
-        self.model.residues.side_effect = [["H1", "H2", "H3"], ["C1", "C2", "C3", "C4"]]
-        combos = model_to_residue_combos(self.model, "H2C3")
-        self.mock_split.assert_called_with("H2C3")
-        self.model.residues.assert_any_call(code="H")
-        self.model.residues.assert_any_call(code="C")
-        self.assertEqual(combos, (
-         ("H1", "H2", "C1", "C2", "C3"), ("H1", "H2", "C1", "C2", "C4"),
-         ("H1", "H2", "C1", "C3", "C4"), ("H1", "H2", "C2", "C3", "C4"),
-         ("H1", "H3", "C1", "C2", "C3"), ("H1", "H3", "C1", "C2", "C4"),
-         ("H1", "H3", "C1", "C3", "C4"), ("H1", "H3", "C2", "C3", "C4"),
-         ("H2", "H3", "C1", "C2", "C3"), ("H2", "H3", "C1", "C2", "C4"),
-         ("H2", "H3", "C1", "C3", "C4"), ("H2", "H3", "C2", "C3", "C4")
-        ))
-
-        self.mock_split.side_effect = lambda family: ["H3", "C1"]
-        self.model.residues.side_effect = [["H1", "H2", "H3", "H4"], ["C1", "C2"]]
-        combos = model_to_residue_combos(self.model, "H3C1")
-        self.mock_split.assert_called_with("H3C1")
-        self.model.residues.assert_any_call(code="H")
-        self.model.residues.assert_any_call(code="C")
-        self.assertEqual(combos, (
-         ("H1", "H2", "H3", "C1"), ("H1", "H2", "H3", "C2"),
-         ("H1", "H2", "H4", "C1"), ("H1", "H2", "H4", "C2"),
-         ("H1", "H3", "H4", "C1"), ("H1", "H3", "H4", "C2"),
-         ("H2", "H3", "H4", "C1"), ("H2", "H3", "H4", "C2")
-        ))
-
+        self.mock_count.return_value = 27
         self.mock_split.side_effect = lambda family: ["H2", "C2", "E2"]
-        self.model.residues.side_effect = [["H1", "H2", "H3"], ["C1", "C2", "C3"], ["E1", "E2", "E3"]]
+        res = [Mock() for _ in range(9)]
+        self.model.residues.side_effect = [res[:3], res[3:6], res[6:]]
         combos = model_to_residue_combos(self.model, "H2C2E2")
         self.mock_split.assert_called_with("H2C2E2")
         self.model.residues.assert_any_call(code="H")
         self.model.residues.assert_any_call(code="C")
         self.model.residues.assert_any_call(code="E")
-        self.assertEqual(combos, (
-         ("H1", "H2", "C1", "C2", "E1", "E2"), ("H1", "H2", "C1", "C2", "E1", "E3"),
-         ("H1", "H2", "C1", "C2", "E2", "E3"), ("H1", "H2", "C1", "C3", "E1", "E2"),
-         ("H1", "H2", "C1", "C3", "E1", "E3"), ("H1", "H2", "C1", "C3", "E2", "E3"),
-         ("H1", "H2", "C2", "C3", "E1", "E2"), ("H1", "H2", "C2", "C3", "E1", "E3"),
-         ("H1", "H2", "C2", "C3", "E2", "E3"), ("H1", "H3", "C1", "C2", "E1", "E2"),
-         ("H1", "H3", "C1", "C2", "E1", "E3"), ("H1", "H3", "C1", "C2", "E2", "E3"),
-         ("H1", "H3", "C1", "C3", "E1", "E2"), ("H1", "H3", "C1", "C3", "E1", "E3"),
-         ("H1", "H3", "C1", "C3", "E2", "E3"), ("H1", "H3", "C2", "C3", "E1", "E2"),
-         ("H1", "H3", "C2", "C3", "E1", "E3"), ("H1", "H3", "C2", "C3", "E2", "E3"),
-         ("H2", "H3", "C1", "C2", "E1", "E2"), ("H2", "H3", "C1", "C2", "E1", "E3"),
-         ("H2", "H3", "C1", "C2", "E2", "E3"), ("H2", "H3", "C1", "C3", "E1", "E2"),
-         ("H2", "H3", "C1", "C3", "E1", "E3"), ("H2", "H3", "C1", "C3", "E2", "E3"),
-         ("H2", "H3", "C2", "C3", "E1", "E2"), ("H2", "H3", "C2", "C3", "E1", "E3"),
-         ("H2", "H3", "C2", "C3", "E2", "E3")
-        ))
+        self.assertEqual(combos, [
+         (res[0], res[1], res[3], res[4], res[6], res[7]),
+         (res[0], res[1], res[3], res[4], res[6], res[8]),
+         (res[0], res[1], res[3], res[4], res[7], res[8]),
+         (res[0], res[1], res[3], res[5], res[6], res[7]),
+         (res[0], res[1], res[3], res[5], res[6], res[8]),
+         (res[0], res[1], res[3], res[5], res[7], res[8]),
+         (res[0], res[1], res[4], res[5], res[6], res[7]),
+         (res[0], res[1], res[4], res[5], res[6], res[8]),
+         (res[0], res[1], res[4], res[5], res[7], res[8]),
+         (res[0], res[2], res[3], res[4], res[6], res[7]),
+         (res[0], res[2], res[3], res[4], res[6], res[8]),
+         (res[0], res[2], res[3], res[4], res[7], res[8]),
+         (res[0], res[2], res[3], res[5], res[6], res[7]),
+         (res[0], res[2], res[3], res[5], res[6], res[8]),
+         (res[0], res[2], res[3], res[5], res[7], res[8]),
+         (res[0], res[2], res[4], res[5], res[6], res[7]),
+         (res[0], res[2], res[4], res[5], res[6], res[8]),
+         (res[0], res[2], res[4], res[5], res[7], res[8]),
+         (res[1], res[2], res[3], res[4], res[6], res[7]),
+         (res[1], res[2], res[3], res[4], res[6], res[8]),
+         (res[1], res[2], res[3], res[4], res[7], res[8]),
+         (res[1], res[2], res[3], res[5], res[6], res[7]),
+         (res[1], res[2], res[3], res[5], res[6], res[8]),
+         (res[1], res[2], res[3], res[5], res[7], res[8]),
+         (res[1], res[2], res[4], res[5], res[6], res[7]),
+         (res[1], res[2], res[4], res[5], res[6], res[8]),
+         (res[1], res[2], res[4], res[5], res[7], res[8]),
+        ])
     
 
     def test_can_handle_insufficient_residues_in_one_subfamily(self):
+        self.mock_count.return_value = 0
         self.mock_split.side_effect = lambda family: ["H2", "C2", "E2"]
         self.model.residues.side_effect = [["H1", "H2", "H3"], ["C1", "C2", "C3"], []]
         combos = model_to_residue_combos(self.model, "H2C2E2")
@@ -245,90 +316,45 @@ class ModelToResidueCombinationsTests(TestCase):
         self.model.residues.assert_any_call(code="H")
         self.model.residues.assert_any_call(code="C")
         self.model.residues.assert_any_call(code="E")
-        self.assertEqual(combos, ())
-
+        self.assertEqual(combos, [])
+    
 
     def test_can_limit_number_of_combinations_returned(self):
+        self.mock_count.return_value = 27
+        self.mock_sample.return_value = [1, 2, 5]
         self.mock_split.side_effect = lambda family: ["H2", "C2", "E2"]
-        self.model.residues.side_effect = [["H1", "H2", "H3"], ["C1", "C2", "C3"], ["E1", "E2", "E3"]]
-        combos = model_to_residue_combos(self.model, "H2C2E2", limit=4)
+        res = [Mock() for _ in range(9)]
+        self.model.residues.side_effect = [res[:3], res[3:6], res[6:]]
+        combos = model_to_residue_combos(self.model, "H2C2E2", limit=3)
+        self.mock_count.assert_called_with(self.model, "H2C2E2")
+        self.mock_sample.assert_called_with(range(27), 3)
         self.mock_split.assert_called_with("H2C2E2")
         self.model.residues.assert_any_call(code="H")
         self.model.residues.assert_any_call(code="C")
         self.model.residues.assert_any_call(code="E")
-        self.assertEqual(combos, (
-         ("H1", "H2", "C1", "C2", "E1", "E2"), ("H1", "H2", "C1", "C2", "E1", "E3"),
-         ("H1", "H2", "C1", "C2", "E2", "E3"), ("H1", "H2", "C1", "C3", "E1", "E2"),
-        ))
-'''
-
-
-class SequenceToResidueComboTests(TestCase):
-
-    def setUp(self):
-        self.patch1 = patch("core.utilities.split_family")
-        self.mock_split = self.patch1.start()
-        self.mock_split.side_effect = lambda family: [family]
-    
-
-    def tearDown(self):
-        self.patch1.stop()
-
-
-    def test_can_handle_no_matching_residues(self):
-        combos = sequence_to_residue_combos("abcd", "H3")
-        self.mock_split.assert_called_with("H3")
-        self.assertEqual(combos, [])
-    
-
-    def test_can_handle_insufficient_matching_residues(self):
-        combos = sequence_to_residue_combos("abcHdeHfgi", "H3")
-        self.mock_split.assert_called_with("H3")
-        self.assertEqual(combos, [])
-    
-
-    def test_can_return_single_combination(self):
-        combos = sequence_to_residue_combos("abcHdeHfghi", "H3")
-        self.mock_split.assert_called_with("H3")
-        self.assertEqual(combos, ["abcHdeHfgHi"])
-    
-
-    def test_can_return_many_combinations(self):
-        combos = sequence_to_residue_combos("abcHdeHfghihsdsd", "H3")
-        self.mock_split.assert_called_with("H3")
         self.assertEqual(combos, [
-         "abcHdeHfgHihsdsd", "abcHdeHfghiHsdsd", "abcHdehfgHiHsdsd", "abchdeHfgHiHsdsd"
+         (res[0], res[1], res[3], res[4], res[6], res[8]),
+         (res[0], res[1], res[3], res[4], res[7], res[8]),
+         (res[0], res[1], res[3], res[5], res[7], res[8]),
         ])
     
 
-    def test_can_return_combinations_from_different_subfamilies(self):
-        self.mock_split.side_effect = lambda family: ["H2", "C3"]
-        combos = sequence_to_residue_combos("xhxyzhxyzxhxycxyzcxyzxyzcxycxyz", "H2C3")
-        self.mock_split.assert_called_with("H2C3")
-        self.assertEqual(combos, [
-         "xHxyzHxyzxhxyCxyzCxyzxyzCxycxyz", "xHxyzHxyzxhxyCxyzCxyzxyzcxyCxyz",
-         "xHxyzHxyzxhxyCxyzcxyzxyzCxyCxyz", "xHxyzHxyzxhxycxyzCxyzxyzCxyCxyz",
-         "xHxyzhxyzxHxyCxyzCxyzxyzCxycxyz", "xHxyzhxyzxHxyCxyzCxyzxyzcxyCxyz",
-         "xHxyzhxyzxHxyCxyzcxyzxyzCxyCxyz", "xHxyzhxyzxHxycxyzCxyzxyzCxyCxyz",
-         "xhxyzHxyzxHxyCxyzCxyzxyzCxycxyz", "xhxyzHxyzxHxyCxyzCxyzxyzcxyCxyz",
-         "xhxyzHxyzxHxyCxyzcxyzxyzCxyCxyz", "xhxyzHxyzxHxycxyzCxyzxyzCxyCxyz"
-        ])
-    
-
-    def test_can_handle_insufficient_residues_in_one_subfamily(self):
+    def test_can_ignore_seen_ids(self):
+        self.mock_count.return_value = 27
+        self.mock_sample.return_value = [1, 2, 5]
         self.mock_split.side_effect = lambda family: ["H2", "C2", "E2"]
-        combos = sequence_to_residue_combos("xhxhxhxcxexexe", "H2C2E2")
+        res = [Mock() for _ in range(9)]
+        self.model.residues.side_effect = [res[:3], res[3:6], res[6:]]
+        combos = model_to_residue_combos(self.model, "H2C2E2", limit=3, ignore=[set([res[0].id, res[1].id, res[3].id, res[4].id, res[6].id, res[8].id])])
+        self.mock_count.assert_called_with(self.model, "H2C2E2")
+        self.mock_sample.assert_called_with(range(27), 3)
         self.mock_split.assert_called_with("H2C2E2")
-        self.assertEqual(combos, [])
-    
-
-    def test_can_limit_number_of_combinations_returned(self):
-        self.mock_split.side_effect = lambda family: ["H2", "C3"]
-        combos = sequence_to_residue_combos("xhxyzhxyzxhxycxyzcxyzxyzcxycxyz", "H2C3", limit=4)
-        self.mock_split.assert_called_with("H2C3")
+        self.model.residues.assert_any_call(code="H")
+        self.model.residues.assert_any_call(code="C")
+        self.model.residues.assert_any_call(code="E")
         self.assertEqual(combos, [
-         "xHxyzHxyzxhxyCxyzCxyzxyzCxycxyz", "xHxyzHxyzxhxyCxyzCxyzxyzcxyCxyz",
-         "xHxyzHxyzxhxyCxyzcxyzxyzCxyCxyz", "xHxyzHxyzxhxycxyzCxyzxyzCxyCxyz",
+         (res[0], res[1], res[3], res[4], res[7], res[8]),
+         (res[0], res[1], res[3], res[5], res[7], res[8]),
         ])
 
 
@@ -371,20 +397,4 @@ class ResiduesToSampleTests(TestCase):
         self.assertAlmostEqual(sample["cb_min"], 1.414, delta=0.005)
         self.assertEqual(sample["helix"], 2)
         self.assertEqual(sample["strand"], 1)
-
-
-
-class SequenceToSampleTests(TestCase):
-
-    def test_can_get_sequence_dict(self):
-        sample = sequence_to_sample("abcHsdHaslkdHoiuhdsHasw", "X1")
-        self.assertEqual(sample.keys(), {
-         "site", "min_spacer", "max_spacer", "spacer_1", "spacer_2", "spacer_3"
-        })
-        self.assertEqual(sample["site"], "X1")
-        self.assertEqual(sample["min_spacer"], 2)
-        self.assertEqual(sample["max_spacer"], 6)
-        self.assertEqual(sample["spacer_1"], 2)
-        self.assertEqual(sample["spacer_2"], 5)
-        self.assertEqual(sample["spacer_3"], 6)
         
