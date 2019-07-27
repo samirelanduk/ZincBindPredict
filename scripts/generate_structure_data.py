@@ -41,7 +41,9 @@ def main():
             for site in pdb["zincsites"]:
                 # Get the actual atomium residues
                 residues = [r for r in site["residues"] if r["chainSignature"]]
-                at_residues = get_residues_from_model(model, residues)
+                try:
+                    at_residues = get_residues_from_model(model, residues)
+                except: continue
 
                 # Make note of these residues for later
                 seen_residue_ids.append(set([res.id for res in at_residues]))
