@@ -2,11 +2,35 @@ import os
 import sys
 from datetime import datetime
 import sklearn.metrics as metrics
-from sklearn.model_selection import train_test_split
+from sklearn.model_selection import train_test_split, cross_val_score
+from sklearn.preprocessing import StandardScaler
 import matplotlib.pyplot as plt
 import pandas as pd
 
-# Get model and hyperparameters
+# What datasets are there?
+csvs = filter(lambda f: f.endswith("csv") and "seq" not in f, os.listdir("data"))
+for csv in csvs:
+    data = pd.read_csv(f"data/{csv}")
+    unlabelled_data = data.iloc[:, 1:-1]
+    labels = data.iloc[:, -1]
+    positives = data.loc[data["positive"] == 1].iloc[:, :-1]
+    negatives = data.loc[data["positive"] == -1].iloc[:, :-1]
+    name = csv[:-4]
+    print(name)
+
+    # Prepare dataset
+    unlabelled_scaled = StandardScaler().fit_transform(unlabelled_data.iloc[:, 1:])
+    unlabelled_scaled = pd.DataFrame(data=unlabelled_scaled, columns=unlabelled_data.columns[1:])
+
+    from sklearn.ensemble import RandomForestClassifier
+    classifier = RandomForestClassifier(n_estimators=100)
+    scores = cross_val_score(classifier, unlabelled_data, labels, cv=5)
+    print(scores)
+    
+
+
+
+'''# Get model and hyperparameters
 if len(sys.argv) == 1:
     print("Where are the hyperparameters?")
     sys.exit()
@@ -80,3 +104,4 @@ for csv in csvs:
         print_log(f"  AUC {metrics.auc(roc_x, roc_y)}")
         print_log("")
     print_log("")
+'''

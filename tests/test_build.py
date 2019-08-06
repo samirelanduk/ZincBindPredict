@@ -1,15 +1,15 @@
 import sys; sys.path.append("scripts")
 from unittest import TestCase
 from unittest.mock import patch, Mock, MagicMock
-from scripts.generate_structure_data import main as structures_main
+from data.generate_structure_data import main as structures_main
 
 
 class StructureDatasetBuildingTests(TestCase):
 
     def setUp(self):
         self.patch1 = patch("builtins.print")
-        self.patch2 = patch("scripts.generate_structure_data.tqdm")
-        self.patch3 = patch("scripts.generate_structure_data.update_data_file")
+        self.patch2 = patch("data.generate_structure_data.tqdm")
+        self.patch3 = patch("data.generate_structure_data.update_data_file")
         self.mock_print = self.patch1.start()
         self.mock_tqdm = self.patch2.start()
         self.mock_data = self.patch3.start()
