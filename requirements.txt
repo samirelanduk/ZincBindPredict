@@ -1,4 +1,4 @@
-django==2.2.3
+django==2.2.4
 atomium>=1.0
 kirjava
 tqdm
