@@ -5,7 +5,7 @@ import atomium
 from tqdm import tqdm
 import sys
 sys.path.append("../zincbindpredict")
-from .utilities import *
+from utilities import *
 
 API_URL = "https://api.zincbind.net/"
 
@@ -19,7 +19,8 @@ query ZincSites($family: String) { pdbs(resolution__lt: 2) { edges { node {
 } } } }
 """
 
-FAMILIES = ["H3", "C4", "C2H2", "C3H1", "D1H2", "E1H2"]
+with open("data/families.dat") as f:
+    FAMILIES = f.read().splitlines()
 
 NEGATIVES = 100
 
