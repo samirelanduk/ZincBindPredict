@@ -1,6 +1,6 @@
 import atomium
 from django.http import JsonResponse
-from .utilities import model_to_residue_combos, residues_to_sample
+from data.utilities import model_to_residue_combos, residues_to_sample
 
 def predict(request):
     f = request.FILES["data"]

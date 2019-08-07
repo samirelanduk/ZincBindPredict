@@ -1,4 +1,4 @@
-import sys; sys.path.append("scripts")
+import sys; sys.path.append("data")
 from unittest import TestCase
 from unittest.mock import patch, Mock, MagicMock
 from data.generate_structure_data import main as structures_main

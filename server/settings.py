@@ -13,11 +13,11 @@ ALLOWED_HOSTS = []
 
 DEBUG = True
 
-ROOT_URLCONF = "core.urls"
+ROOT_URLCONF = "server.urls"
 
 INSTALLED_APPS = [
  "django.contrib.staticfiles",
- "core"
+ "server"
 ]
 
 DATE_FORMAT = "D j M, Y"

@@ -1,7 +1,7 @@
 from atomium import Residue, Atom, Chain
 from unittest import TestCase
 from unittest.mock import patch, Mock, MagicMock
-from core.utilities import *
+from data.utilities import *
 
 class DataFetchingTests(TestCase):
 
@@ -49,36 +49,23 @@ class DataFileUpdatingTests(TestCase):
 
     def test_can_save_empty_file(self):
         update_data_file("X1")
-        self.mock_open.assert_called_with("data/X1.csv", "w")
+        self.mock_open.assert_called_with("data/csv/X1.csv", "w")
         self.mock_write.assert_called_with("")
     
 
     def test_can_save_samples(self):
         self.mock_size.return_value = 10
         update_data_file("X1", samples=[{"A": 1, "B": 2}, {"A": 3, "B": 4}])
-        self.mock_size.assert_called_with("data/X1.csv")
-        self.mock_open.assert_called_with("data/X1.csv", "a")
+        self.mock_size.assert_called_with("data/csv/X1.csv")
+        self.mock_open.assert_called_with("data/csv/X1.csv", "a")
         self.mock_writelines.assert_called_with(["1,2\n", "3,4\n"])
         
     
     def test_can_save_samples_with_header(self):
         update_data_file("X1", samples=[{"A": 1, "B": 2}, {"A": 3, "B": 4}])
-        self.mock_size.assert_called_with("data/X1.csv")
-        self.mock_open.assert_called_with("data/X1.csv", "a")
+        self.mock_size.assert_called_with("data/csv/X1.csv")
+        self.mock_open.assert_called_with("data/csv/X1.csv", "a")
         self.mock_writelines.assert_called_with(["A,B\n", "1,2\n", "3,4\n"])
-
-
-
-class FamilySplittingTests(TestCase):
-
-    def test_can_split_simple_family(self):
-        self.assertEqual(split_family("H3"), ["H3"])
-        self.assertEqual(split_family("P13"), ["P13"])
-    
-
-    def test_can_split_simple_families_with_different_residues(self):
-        self.assertEqual(split_family("C4H2"), ["C4", "H2"])
-        self.assertEqual(split_family("A12B6C176D1"), ["A12", "B6", "C176", "D1"])
 
 
 
@@ -105,103 +92,55 @@ class ResiduesFromModelTests(TestCase):
 
 
 
-class ModelCombinationsCountTests(TestCase):
+class ResiduesToSampleTests(TestCase):
 
     def setUp(self):
-        self.patch1 = patch("core.utilities.split_family")
-        self.mock_split = self.patch1.start()
-        self.mock_split.side_effect = lambda family: [family]
-        self.model = Mock()
-        self.model.residues.side_effect = lambda code: []
-    
+        self.res1 = Residue(
+         Atom("C", 0, -2, 0, 1, "CA", 0, 0, []), Atom("C", 0, -1, 0, 1, "CB", 0, 0, [])
+        )
+        self.res2 = Residue(
+         Atom("C", 0, 2, 0, 1, "CA", 0, 0, []), Atom("C", 0, 1, 0, 1, "CB", 0, 0, [])
+        )
+        self.res3 = Residue(
+         Atom("C", -2, 0, 0, 1, "CA", 0, 0, []), Atom("C", -1, 0, 0, 1, "CB", 0, 0, [])
+        )
+        self.res4 = Residue(
+         Atom("C", 2, 0, 0, 1, "CA", 0, 0, []), Atom("C", 1, 0, 0, 1, "CB", 0, 0, [])
+        )
+        Chain(
+         self.res1, self.res2, self.res3, self.res4,
+         helices=[[self.res2, self.res3]], strands=[[self.res4]]
+        )
+        
 
-    def tearDown(self):
-        self.patch1.stop()
-
-
-    def test_can_count_no_matching_residues(self):
-        self.model.residues.side_effect = lambda code: []
-        count = count_combinations(self.model, "H3")
-        self.mock_split.assert_called_with("H3")
-        self.model.residues.assert_called_with(code="H")
-        self.assertEqual(count, 0)
-    
-
-    def test_can_count_insufficient_matching_residues(self):
-        self.model.residues.side_effect = lambda code: ["R1", "R2"]
-        count = count_combinations(self.model, "H3")
-        self.mock_split.assert_called_with("H3")
-        self.model.residues.assert_called_with(code="H")
-        self.assertEqual(count, 0)
-    
-
-    def test_can_count_single_combination(self):
-        self.model.residues.side_effect = lambda code: ["R1", "R2", "R3"]
-        count = count_combinations(self.model, "H3")
-        self.mock_split.assert_called_with("H3")
-        self.model.residues.assert_called_with(code="H")
-        self.assertEqual(count, 1)
-    
-
-    def test_can_count_many_combinations(self):
-        self.model.residues.side_effect = lambda code: ["R1", "R2", "R3", "R4", "R5"]
-        count = count_combinations(self.model, "H3")
-        self.mock_split.assert_called_with("H3")
-        self.model.residues.assert_called_with(code="H")
-        self.assertEqual(count, 10)
-        count = count_combinations(self.model, "C4")
-        self.mock_split.assert_called_with("C4")
-        self.model.residues.assert_called_with(code="C")
-        self.assertEqual(count, 5)
-    
-
-    def test_can_return_combinations_from_different_subfamilies(self):
-        self.mock_split.side_effect = lambda family: ["H2", "C3"]
-        self.model.residues.side_effect = [["H1", "H2", "H3"], ["C1", "C2", "C3", "C4"]]
-        count = count_combinations(self.model, "H2C3")
-        self.mock_split.assert_called_with("H2C3")
-        self.model.residues.assert_any_call(code="H")
-        self.model.residues.assert_any_call(code="C")
-        self.assertEqual(count, 12)
-
-        self.mock_split.side_effect = lambda family: ["H3", "C1"]
-        self.model.residues.side_effect = [["H1", "H2", "H3", "H4"], ["C1", "C2"]]
-        count = count_combinations(self.model, "H3C1")
-        self.mock_split.assert_called_with("H3C1")
-        self.model.residues.assert_any_call(code="H")
-        self.model.residues.assert_any_call(code="C")
-        self.assertEqual(count, 8)
-
-        self.mock_split.side_effect = lambda family: ["H2", "C2", "E2"]
-        self.model.residues.side_effect = [["H1", "H2", "H3"], ["C1", "C2", "C3"], ["E1", "E2", "E3"]]
-        count = count_combinations(self.model, "H2C2E2")
-        self.mock_split.assert_called_with("H2C2E2")
-        self.model.residues.assert_any_call(code="H")
-        self.model.residues.assert_any_call(code="C")
-        self.model.residues.assert_any_call(code="E")
-        self.assertEqual(count, 27)
-    
-
-    def test_can_count_insufficient_residues_in_one_subfamily(self):
-        self.mock_split.side_effect = lambda family: ["H2", "C2", "E2"]
-        self.model.residues.side_effect = [["H1", "H2", "H3"], ["C1", "C2", "C3"], []]
-        count = count_combinations(self.model, "H2C2E2")
-        self.mock_split.assert_called_with("H2C2E2")
-        self.model.residues.assert_any_call(code="H")
-        self.model.residues.assert_any_call(code="C")
-        self.model.residues.assert_any_call(code="E")
-        self.assertEqual(count, 0)
-
+    def test_can_get_sample_dict(self):
+        sample = residues_to_sample((self.res1, self.res2, self.res3, self.res4), "X1")
+        self.assertEqual(sample.keys(), {
+         "site", "ca_mean", "ca_std", "ca_max", "ca_min", "cb_mean", "cb_std",
+         "cb_max", "cb_min", "helix", "strand"
+        })
+        self.assertEqual(sample["site"], "X1")
+        self.assertAlmostEqual(sample["ca_mean"], 3.218, delta=0.005)
+        self.assertAlmostEqual(sample["ca_std"], 0.552, delta=0.005)
+        self.assertEqual(sample["ca_max"], 4)
+        self.assertAlmostEqual(sample["ca_min"], 2.828, delta=0.005)
+        self.assertAlmostEqual(sample["cb_mean"], 1.609, delta=0.005)
+        self.assertAlmostEqual(sample["cb_std"], 0.276, delta=0.005)
+        self.assertEqual(sample["cb_max"], 2)
+        self.assertAlmostEqual(sample["cb_min"], 1.414, delta=0.005)
+        self.assertEqual(sample["helix"], 2)
+        self.assertEqual(sample["strand"], 1)
+        
 
 
 class ModelToResidueCombinationsTests(TestCase):
 
     def setUp(self):
-        self.patch1 = patch("core.utilities.count_combinations")
+        self.patch1 = patch("data.utilities.count_combinations")
         self.mock_count = self.patch1.start()
         self.patch2 = patch("random.sample")
         self.mock_sample = self.patch2.start()
-        self.patch3 = patch("core.utilities.split_family")
+        self.patch3 = patch("data.utilities.split_family")
         self.mock_split = self.patch3.start()
         self.mock_split.side_effect = lambda family: [family]
         self.model = Mock()
@@ -359,42 +298,108 @@ class ModelToResidueCombinationsTests(TestCase):
 
 
 
-class ResiduesToSampleTests(TestCase):
+class ModelCombinationsCountTests(TestCase):
 
     def setUp(self):
-        self.res1 = Residue(
-         Atom("C", 0, -2, 0, 1, "CA", 0, 0, []), Atom("C", 0, -1, 0, 1, "CB", 0, 0, [])
-        )
-        self.res2 = Residue(
-         Atom("C", 0, 2, 0, 1, "CA", 0, 0, []), Atom("C", 0, 1, 0, 1, "CB", 0, 0, [])
-        )
-        self.res3 = Residue(
-         Atom("C", -2, 0, 0, 1, "CA", 0, 0, []), Atom("C", -1, 0, 0, 1, "CB", 0, 0, [])
-        )
-        self.res4 = Residue(
-         Atom("C", 2, 0, 0, 1, "CA", 0, 0, []), Atom("C", 1, 0, 0, 1, "CB", 0, 0, [])
-        )
-        Chain(
-         self.res1, self.res2, self.res3, self.res4,
-         helices=[[self.res2, self.res3]], strands=[[self.res4]]
-        )
-        
+        self.patch1 = patch("data.utilities.split_family")
+        self.mock_split = self.patch1.start()
+        self.mock_split.side_effect = lambda family: [family]
+        self.model = Mock()
+        self.model.residues.side_effect = lambda code: []
+    
 
-    def test_can_get_sample_dict(self):
-        sample = residues_to_sample((self.res1, self.res2, self.res3, self.res4), "X1")
-        self.assertEqual(sample.keys(), {
-         "site", "ca_mean", "ca_std", "ca_max", "ca_min", "cb_mean", "cb_std",
-         "cb_max", "cb_min", "helix", "strand"
-        })
-        self.assertEqual(sample["site"], "X1")
-        self.assertAlmostEqual(sample["ca_mean"], 3.218, delta=0.005)
-        self.assertAlmostEqual(sample["ca_std"], 0.552, delta=0.005)
-        self.assertEqual(sample["ca_max"], 4)
-        self.assertAlmostEqual(sample["ca_min"], 2.828, delta=0.005)
-        self.assertAlmostEqual(sample["cb_mean"], 1.609, delta=0.005)
-        self.assertAlmostEqual(sample["cb_std"], 0.276, delta=0.005)
-        self.assertEqual(sample["cb_max"], 2)
-        self.assertAlmostEqual(sample["cb_min"], 1.414, delta=0.005)
-        self.assertEqual(sample["helix"], 2)
-        self.assertEqual(sample["strand"], 1)
-        
+    def tearDown(self):
+        self.patch1.stop()
+
+
+    def test_can_count_no_matching_residues(self):
+        self.model.residues.side_effect = lambda code: []
+        count = count_combinations(self.model, "H3")
+        self.mock_split.assert_called_with("H3")
+        self.model.residues.assert_called_with(code="H")
+        self.assertEqual(count, 0)
+    
+
+    def test_can_count_insufficient_matching_residues(self):
+        self.model.residues.side_effect = lambda code: ["R1", "R2"]
+        count = count_combinations(self.model, "H3")
+        self.mock_split.assert_called_with("H3")
+        self.model.residues.assert_called_with(code="H")
+        self.assertEqual(count, 0)
+    
+
+    def test_can_count_single_combination(self):
+        self.model.residues.side_effect = lambda code: ["R1", "R2", "R3"]
+        count = count_combinations(self.model, "H3")
+        self.mock_split.assert_called_with("H3")
+        self.model.residues.assert_called_with(code="H")
+        self.assertEqual(count, 1)
+    
+
+    def test_can_count_many_combinations(self):
+        self.model.residues.side_effect = lambda code: ["R1", "R2", "R3", "R4", "R5"]
+        count = count_combinations(self.model, "H3")
+        self.mock_split.assert_called_with("H3")
+        self.model.residues.assert_called_with(code="H")
+        self.assertEqual(count, 10)
+        count = count_combinations(self.model, "C4")
+        self.mock_split.assert_called_with("C4")
+        self.model.residues.assert_called_with(code="C")
+        self.assertEqual(count, 5)
+    
+
+    def test_can_return_combinations_from_different_subfamilies(self):
+        self.mock_split.side_effect = lambda family: ["H2", "C3"]
+        self.model.residues.side_effect = [["H1", "H2", "H3"], ["C1", "C2", "C3", "C4"]]
+        count = count_combinations(self.model, "H2C3")
+        self.mock_split.assert_called_with("H2C3")
+        self.model.residues.assert_any_call(code="H")
+        self.model.residues.assert_any_call(code="C")
+        self.assertEqual(count, 12)
+
+        self.mock_split.side_effect = lambda family: ["H3", "C1"]
+        self.model.residues.side_effect = [["H1", "H2", "H3", "H4"], ["C1", "C2"]]
+        count = count_combinations(self.model, "H3C1")
+        self.mock_split.assert_called_with("H3C1")
+        self.model.residues.assert_any_call(code="H")
+        self.model.residues.assert_any_call(code="C")
+        self.assertEqual(count, 8)
+
+        self.mock_split.side_effect = lambda family: ["H2", "C2", "E2"]
+        self.model.residues.side_effect = [["H1", "H2", "H3"], ["C1", "C2", "C3"], ["E1", "E2", "E3"]]
+        count = count_combinations(self.model, "H2C2E2")
+        self.mock_split.assert_called_with("H2C2E2")
+        self.model.residues.assert_any_call(code="H")
+        self.model.residues.assert_any_call(code="C")
+        self.model.residues.assert_any_call(code="E")
+        self.assertEqual(count, 27)
+    
+
+    def test_can_count_insufficient_residues_in_one_subfamily(self):
+        self.mock_split.side_effect = lambda family: ["H2", "C2", "E2"]
+        self.model.residues.side_effect = [["H1", "H2", "H3"], ["C1", "C2", "C3"], []]
+        count = count_combinations(self.model, "H2C2E2")
+        self.mock_split.assert_called_with("H2C2E2")
+        self.model.residues.assert_any_call(code="H")
+        self.model.residues.assert_any_call(code="C")
+        self.model.residues.assert_any_call(code="E")
+        self.assertEqual(count, 0)
+
+
+
+class FamilySplittingTests(TestCase):
+
+    def test_can_split_simple_family(self):
+        self.assertEqual(split_family("H3"), ["H3"])
+        self.assertEqual(split_family("P13"), ["P13"])
+    
+
+    def test_can_split_simple_families_with_different_residues(self):
+        self.assertEqual(split_family("C4H2"), ["C4", "H2"])
+        self.assertEqual(split_family("A12B6C176D1"), ["A12", "B6", "C176", "D1"])
+
+
+
+
+
+

@@ -5,7 +5,7 @@ import atomium
 from tqdm import tqdm
 import sys
 sys.path.append("../zincbindpredict")
-from core.utilities import *
+from .utilities import *
 
 API_URL = "https://api.zincbind.net/"
 
