@@ -1,4 +1,7 @@
 from atomium import Residue, Atom, Chain
+import pandas as pd
+import numpy as np
+from io import StringIO
 from unittest import TestCase
 from unittest.mock import patch, Mock, MagicMock
 from data.utilities import *
@@ -400,6 +403,15 @@ class FamilySplittingTests(TestCase):
 
 
 
+class DatasetSplittingTests(TestCase):
 
+    def test_can_split_dataset(self):
+        data = StringIO("ID,col1,col2,positive\nA,1,2,1\nB,10,20,-1\nC,3,4,1")
+        df = pd.read_csv(data)
+        unlabelled, positives, negatives, core = split_dataset(df)
+        self.assertEqual(unlabelled.shape, (3, 3))
+        self.assertEqual(positives.shape, (2, 3))
+        self.assertEqual(negatives.shape, (1, 3))
+        self.assertEqual(core.shape, (3, 2))
 
 

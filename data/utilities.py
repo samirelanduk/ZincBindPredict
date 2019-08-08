@@ -126,3 +126,16 @@ def split_family(family):
         subfamily += char
     subfamilies.append(subfamily)
     return subfamilies
+
+
+def split_dataset(df):
+    """Takes a pandas dataset and produces four variants on it. They all have
+    the last column removed. The second one is limited to positive cases,
+    the third to negative cases, and the fourth is unlabelled *and* has no IDs.
+    """
+
+    unlabelled = df.iloc[:, :-1]
+    positives = df.loc[df["positive"] == 1].iloc[:, :-1]
+    negatives = df.loc[df["positive"] == -1].iloc[:, :-1]
+    core = df.iloc[:, 1:-1]
+    return unlabelled, positives, negatives, core
