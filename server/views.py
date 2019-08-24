@@ -1,7 +1,9 @@
 import atomium
 import os
 import time
+import json
 from datetime import datetime
+from subprocess import Popen
 import requests
 from django.http import JsonResponse
 from django.conf import settings
@@ -37,6 +39,7 @@ def predict_structure(request):
     os.mkdir(f"server/jobs/{job_id}")
     with open(f"server/jobs/{job_id}/{code}.mmtf", "wb") as f:
         f.write(response.content)
+    p = Popen(["server/job.py", str(job_id)])
     s = "s" if settings.ALLOWED_HOSTS else ""
     return JsonResponse({
      "job": f"http{s}://{request.META['HTTP_HOST']}{request.path}{job_id}",
@@ -44,6 +47,12 @@ def predict_structure(request):
       job_id / 1000 + (settings.JOB_EXPIRATION * 60 * 60 * 24)
      ).strftime("%-d %B %Y, %H:%M UTC")
     })
+
+
+def job(request, id):
+    with open(f"server/jobs/{id}/job.json") as f:
+        data = json.load(f)
+    return JsonResponse(data)
 
 
 def predict_sequence(request):
