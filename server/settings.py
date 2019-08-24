@@ -29,3 +29,5 @@ MIDDLEWARE = [
 ]
 
 STATIC_URL = "/static/"
+
+JOB_EXPIRATION = 10
