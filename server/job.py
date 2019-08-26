@@ -18,11 +18,17 @@ if not os.path.exists(f"server/jobs/{job_id}"):
 filename = get_job_structure_file(job_id)
 
 # Create initial job JSON
-job = {"job_id": job_id, "status": "initialising", "families": {}}
+job = {
+ "job_id": job_id, "status": "initialising",
+ "structure": "unknown", "families": {}
+}
 write_job(job)
 
 # Load structure
-structure = atomium.open(f"server/jobs/{job_id}/{filename}").model
+pdb = atomium.open(f"server/jobs/{job_id}/{filename}")
+structure = pdb.model
+job["structure"] = pdb.code or "unknown"
+write_job(job)
 
 # Determine what models are available
 models = sorted([f for f in os.listdir("predict/models")
@@ -53,22 +59,23 @@ for family in families:
         if model[:len(family)] == family:
 
             # Find sites
+            classifier = joblib.load(f"predict/models/{model}")
             if inputs:
-                classifier = joblib.load(f"predict/models/{model}")
                 y = classifier.predict(inputs)
                 sites = [combos[i] for i, o in enumerate(y) if o == 1]
             else:
                 sites = []
             
             # Save sites to job
-            job["families"][family][
-             model.split(".")[0].replace("Classifier", "")
-            ]["sites"] = [[
+            model_name = model.split(".")[0].replace("Classifier", "")
+            job["families"][family][model_name]["sites"] = [[
              {"id": res.id, "name": res.name} for res in site
             ] for site in sites]
-            job["families"][family][
-             model.split(".")[0].replace("Classifier", "")
-            ]["status"] = "complete"
+            job["families"][family][model_name]["status"] = "complete"
+            job["families"][family][model_name]["metrics"] = {
+             "test_recall": classifier.test_recall_,
+             "test_precision": classifier.test_precision_
+            }
     
 # Finish job
 job["status"] = f"complete"
