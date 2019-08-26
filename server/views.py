@@ -24,21 +24,35 @@ def predict(request):
 
 
 def predict_structure(request):
-    if "code" not in request.GET:
-        return JsonResponse({
-         "error": "You must provide a PDB code"
-        }, status=422, json_dumps_params={"indent": 4})
-    code = request.GET["code"]
-    url = f"https://mmtf.rcsb.org/v1.0/full/{code}"
-    response = requests.get(url)
-    if response.status_code != 200:
-        return JsonResponse({
-         "error": f"{code} does not seem to be a valid PDB"
-        }, status=422, json_dumps_params={"indent": 4})
     job_id = int(time.time() * 1000)
     os.mkdir(f"server/jobs/{job_id}")
-    with open(f"server/jobs/{job_id}/{code}.mmtf", "wb") as f:
-        f.write(response.content)
+
+    if "code" in request.GET:
+        code = request.GET["code"]
+        url = f"https://mmtf.rcsb.org/v1.0/full/{code}"
+        response = requests.get(url)
+        if response.status_code != 200:
+            return JsonResponse({
+             "error": f"{code} does not seem to be a valid PDB"
+            }, status=422, json_dumps_params={"indent": 4})
+        
+        
+        with open(f"server/jobs/{job_id}/{code}.mmtf", "wb") as f:
+            f.write(response.content)
+    
+    elif "file" in request.FILES:
+
+        uploaded_file = request.FILES["file"]
+        for chunk in uploaded_file.chunks():
+            with open(f"server/jobs/{job_id}/{uploaded_file.name}", "ab") as f:
+                f.write(chunk)
+
+
+    else:
+        return JsonResponse({
+         "error": "You must provide a PDB code or a structure file"
+        }, status=422, json_dumps_params={"indent": 4})
+    
     p = Popen(["server/job.py", str(job_id)])
     s = "s" if settings.ALLOWED_HOSTS else ""
     return JsonResponse({
