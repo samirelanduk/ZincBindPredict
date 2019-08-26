@@ -25,7 +25,6 @@ job = {
 write_job(job)
 
 # Load structure
-print(filename)
 pdb = atomium.open(f"server/jobs/{job_id}/{filename}")
 structure = pdb.model
 job["structure"] = pdb.code or "unknown"

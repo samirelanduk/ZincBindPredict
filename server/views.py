@@ -7,10 +7,10 @@ from subprocess import Popen
 import requests
 from django.http import JsonResponse
 from django.conf import settings
-from .utilities import model_to_residue_combos, residues_to_sample
+from .utilities import *
 
 PATHS = {
- "/predict/structure?code=XXXX": "Find zinc binding sites in PDB structure"
+ "/structure?code=XXXX": "Find zinc binding sites in PDB structure"
 }
 
 def root(request):
@@ -19,40 +19,16 @@ def root(request):
     }, json_dumps_params={"indent": 4})
 
 
-def predict(request):
-    return JsonResponse(PATHS, json_dumps_params={"indent": 4})
-
-
 def predict_structure(request):
     job_id = int(time.time() * 1000)
     os.mkdir(f"server/jobs/{job_id}")
-
     if "code" in request.GET:
-        code = request.GET["code"]
-        url = f"https://mmtf.rcsb.org/v1.0/full/{code}"
-        response = requests.get(url)
-        if response.status_code != 200:
-            return JsonResponse({
-             "error": f"{code} does not seem to be a valid PDB"
-            }, status=422, json_dumps_params={"indent": 4})
-        
-        
-        with open(f"server/jobs/{job_id}/{code}.mmtf", "wb") as f:
-            f.write(response.content)
-    
+        if not save_pdb_code(request.GET["code"], job_id):
+            return error_json("That does not seem to be a valid PDB code")
     elif "file" in request.FILES:
-
-        uploaded_file = request.FILES["file"]
-        for chunk in uploaded_file.chunks():
-            with open(f"server/jobs/{job_id}/{uploaded_file.name}", "ab") as f:
-                f.write(chunk)
-
-
+        save_uploaded_file(request.FILES["file"], job_id)
     else:
-        return JsonResponse({
-         "error": "You must provide a PDB code or a structure file"
-        }, status=422, json_dumps_params={"indent": 4})
-    
+        return error_json(f"You must provide a PDB code or a structure file")
     p = Popen(["server/job.py", str(job_id)])
     s = "s" if settings.ALLOWED_HOSTS else ""
     return JsonResponse({
