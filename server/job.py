@@ -62,21 +62,23 @@ for family in families:
             classifier = joblib.load(f"predict/models/{model}")
             if inputs:
                 y = classifier.predict(inputs)
-                sites = [combos[i] for i, o in enumerate(y) if o == 1]
+                prob = classifier.predict_proba(inputs)
+                sites = [(combos[i], prob[i][1]) for i, o in enumerate(y) if o == 1]
             else:
                 sites = []
             
             # Save sites to job
             model_name = model.split(".")[0].replace("Classifier", "")
-            job["families"][family][model_name]["sites"] = [[
-             {"id": res.id, "name": res.name} for res in site
-            ] for site in sites]
+            job["families"][family][model_name]["sites"] = [{
+             "probability": round(prob, 3),
+             "residues": [{"id": res.id, "name": res.name} for res in residues]
+            } for residues, prob in sites]
             job["families"][family][model_name]["status"] = "complete"
             job["families"][family][model_name]["metrics"] = {
-             "validation_recall": classifier.validation_recall_,
-             "validation_precision": classifier.validation_precision_,
-             "test_recall": classifier.test_recall_,
-             "test_precision": classifier.test_precision_
+             "validation_recall": round(classifier.validation_recall_, 3),
+             "validation_precision": round(classifier.validation_precision_, 3),
+             "test_recall": round(classifier.test_recall_, 3),
+             "test_precision": round(classifier.test_precision_, 3)
             }
     
 # Finish job

@@ -10,6 +10,7 @@ CONFIG = {
         "n_estimators": 10
     },
     SVC: {
-        "gamma": "scale"
+        "gamma": "scale",
+        "probability": True
     }
 }
