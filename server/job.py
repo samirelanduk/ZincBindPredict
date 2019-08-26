@@ -73,6 +73,8 @@ for family in families:
             ] for site in sites]
             job["families"][family][model_name]["status"] = "complete"
             job["families"][family][model_name]["metrics"] = {
+             "validation_recall": classifier.validation_recall_,
+             "validation_precision": classifier.validation_precision_,
              "test_recall": classifier.test_recall_,
              "test_precision": classifier.test_precision_
             }

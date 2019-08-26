@@ -3,6 +3,7 @@ import pandas as pd
 import numpy as np
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import recall_score, precision_score
+from sklearn.model_selection import cross_validate
 import joblib
 from config import CONFIG
 
@@ -32,6 +33,11 @@ for csv in csvs:
         # Train model
         X_train, y_train = data_train[:, :-1], data_train[:, -1].astype("int")
         model.fit(X_train, y_train)
+
+        # Validate model
+        scores = cross_validate(model, X_train, y_train, cv=5, scoring=["recall", "precision"])
+        model.validation_recall_ = scores["test_recall"].mean()
+        model.validation_precision_ = scores["test_precision"].mean()
 
         # Test model
         X_test, y_test = data_test[:, :-1], data_test[:, -1].astype("int")
