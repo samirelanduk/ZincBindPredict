@@ -16,25 +16,25 @@ PATHS = {
 def root(request):
     return JsonResponse({
      "/": "root", **PATHS
-    })
+    }, json_dumps_params={"indent": 4})
 
 
 def predict(request):
-    return JsonResponse(PATHS)
+    return JsonResponse(PATHS, json_dumps_params={"indent": 4})
 
 
 def predict_structure(request):
     if "code" not in request.GET:
         return JsonResponse({
          "error": "You must provide a PDB code"
-        }, status=422)
+        }, status=422, json_dumps_params={"indent": 4})
     code = request.GET["code"]
     url = f"https://mmtf.rcsb.org/v1.0/full/{code}"
     response = requests.get(url)
     if response.status_code != 200:
         return JsonResponse({
          "error": f"{code} does not seem to be a valid PDB"
-        }, status=422)
+        }, status=422, json_dumps_params={"indent": 4})
     job_id = int(time.time() * 1000)
     os.mkdir(f"server/jobs/{job_id}")
     with open(f"server/jobs/{job_id}/{code}.mmtf", "wb") as f:
@@ -46,13 +46,13 @@ def predict_structure(request):
      "expires": datetime.fromtimestamp(
       job_id / 1000 + (settings.JOB_EXPIRATION * 60 * 60 * 24)
      ).strftime("%-d %B %Y, %H:%M UTC")
-    })
+    }, json_dumps_params={"indent": 2})
 
 
 def job(request, id):
     with open(f"server/jobs/{id}/job.json") as f:
         data = json.load(f)
-    return JsonResponse(data)
+    return JsonResponse(data, json_dumps_params={"indent": 2})
 
 
 def predict_sequence(request):
