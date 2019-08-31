@@ -20,11 +20,11 @@ def fetch_data(url, query, variables):
     return list(data.values())[0]
 
 
-def update_data_file(family, samples=None):
+def update_data_file(family, kind, samples=None):
     """Saves samples to a CSV file if given, otherwise it just makes an empty
     file ready for samples to be saved to it."""
 
-    path = f"data/csv/{family}.csv"
+    path = f"data/csv/{kind}/{family}.csv"
     if samples:
         csv_lines = [",".join(samples[0].keys()) + "\n"]\
          if os.path.getsize(path) == 0 else []

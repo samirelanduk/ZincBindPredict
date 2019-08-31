@@ -28,8 +28,8 @@ def main():
     for family in FAMILIES:
         print(f"Getting data for {family} binding sites...")
         pdbs = fetch_data(API_URL, QUERY, variables={"family": family})
-        pdbs = [pdb for pdb in pdbs if pdb["zincsites"]]
-        update_data_file(family)
+        pdbs = [pdb for pdb in pdbs if pdb["zincsites"]][:10]
+        update_data_file(family, "structure")
         site_count = sum([len(pdb["zincsites"]) for pdb in pdbs])
         print(f"Got {len(pdbs)} PDBs with {site_count} relevant binding sites")
 
@@ -62,7 +62,7 @@ def main():
                 if sample: samples.append({**sample, **{"positive": -1}})
             
             # Save samples to CSV
-            update_data_file(family, samples)
+            update_data_file(family, "structure", samples)
 
         print()
 

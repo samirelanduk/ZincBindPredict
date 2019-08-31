@@ -2,7 +2,7 @@ from sklearn.neighbors import KNeighborsClassifier
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.svm import SVC
 
-CONFIG = {
+STRUCTURE_CONFIG = {
     KNeighborsClassifier: {
 
     },

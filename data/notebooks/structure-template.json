@@ -6,7 +6,7 @@
       "source": [
        "# X1\n",
        "\n",
-       "This notebook summarises the X1 dataset. This dataset will be used to train supervised learning models that try to determine whether a given combination of residues is a potential X1 zinc binding site.\n",
+       "This notebook summarises the X1 structure dataset. This dataset will be used to train supervised learning models that try to determine whether a given combination of residues is a potential X1 zinc binding site.\n",
        "\n",
        "First the data will be loaded and processed."
       ]
@@ -26,7 +26,7 @@
        "sys.path.append(\"../..\")\n",
        "from data.utilities import split_dataset\n",
        "\n",
-       "data = pd.read_csv(\"../csv/X1.csv\")\n",
+       "data = pd.read_csv(\"../csv/structure/X1.csv\")\n",
        "unlabelled, positives, negatives, core = split_dataset(data)"
       ]
      },

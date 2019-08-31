@@ -51,23 +51,23 @@ class DataFileUpdatingTests(TestCase):
         
 
     def test_can_save_empty_file(self):
-        update_data_file("X1")
-        self.mock_open.assert_called_with("data/csv/X1.csv", "w")
+        update_data_file("X1", "X")
+        self.mock_open.assert_called_with("data/csv/X/X1.csv", "w")
         self.mock_write.assert_called_with("")
     
 
     def test_can_save_samples(self):
         self.mock_size.return_value = 10
-        update_data_file("X1", samples=[{"A": 1, "B": 2}, {"A": 3, "B": 4}])
-        self.mock_size.assert_called_with("data/csv/X1.csv")
-        self.mock_open.assert_called_with("data/csv/X1.csv", "a")
+        update_data_file("X1", "X", samples=[{"A": 1, "B": 2}, {"A": 3, "B": 4}])
+        self.mock_size.assert_called_with("data/csv/X/X1.csv")
+        self.mock_open.assert_called_with("data/csv/X/X1.csv", "a")
         self.mock_writelines.assert_called_with(["1,2\n", "3,4\n"])
         
     
     def test_can_save_samples_with_header(self):
-        update_data_file("X1", samples=[{"A": 1, "B": 2}, {"A": 3, "B": 4}])
-        self.mock_size.assert_called_with("data/csv/X1.csv")
-        self.mock_open.assert_called_with("data/csv/X1.csv", "a")
+        update_data_file("X1", "X", samples=[{"A": 1, "B": 2}, {"A": 3, "B": 4}])
+        self.mock_size.assert_called_with("data/csv/X/X1.csv")
+        self.mock_open.assert_called_with("data/csv/X/X1.csv", "a")
         self.mock_writelines.assert_called_with(["A,B\n", "1,2\n", "3,4\n"])
 
 
