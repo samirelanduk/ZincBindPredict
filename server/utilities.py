@@ -5,6 +5,7 @@ import os
 import json
 from django.http import JsonResponse
 from data.utilities import model_to_residue_combos, residues_to_sample
+from data.utilities import sequence_to_residue_combos, sequence_to_sample
 
 def save_pdb_code(code, job_id):
     url = f"https://mmtf.rcsb.org/v1.0/full/{code}"

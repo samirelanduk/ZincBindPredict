@@ -29,7 +29,22 @@ def predict_structure(request):
         save_uploaded_file(request.FILES["file"], job_id)
     else:
         return error_json(f"You must provide a PDB code or a structure file")
-    p = Popen(["server/job.py", str(job_id)])
+    p = Popen(["server/structure_job.py", str(job_id)])
+    s = "s" if settings.ALLOWED_HOSTS else ""
+    return JsonResponse({
+     "job": f"http{s}://{request.META['HTTP_HOST']}{request.path}{job_id}",
+     "expires": datetime.fromtimestamp(
+      job_id / 1000 + (settings.JOB_EXPIRATION * 60 * 60 * 24)
+     ).strftime("%-d %B %Y, %H:%M UTC")
+    }, json_dumps_params={"indent": 2})
+
+
+def predict_sequence(request):
+    job_id = int(time.time() * 1000)
+    os.mkdir(f"server/jobs/{job_id}")
+    if "sequence" not in request.GET:
+        return error_json(f"You must provide a sequence")
+    p = Popen(["server/sequence_job.py", str(job_id), request.GET["sequence"]])
     s = "s" if settings.ALLOWED_HOSTS else ""
     return JsonResponse({
      "job": f"http{s}://{request.META['HTTP_HOST']}{request.path}{job_id}",
@@ -43,7 +58,3 @@ def job(request, id):
     with open(f"server/jobs/{id}/job.json") as f:
         data = json.load(f)
     return JsonResponse(data, json_dumps_params={"indent": 2})
-
-
-def predict_sequence(request):
-    pass
