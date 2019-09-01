@@ -81,7 +81,7 @@ def model_to_residue_combos(model, family, limit=None, ignore=None):
     match the family given. You can limit the number of combinations it returns
     to prevent catastrophic consumption of residues if you want."""
 
-    combo_count = count_combinations(model, family)
+    combo_count = count_model_combinations(model, family)
     indices = random.sample(range(combo_count), limit)\
      if limit and limit <= combo_count else range(combo_count)
     subfamilies = split_family(family)
@@ -101,7 +101,7 @@ def model_to_residue_combos(model, family, limit=None, ignore=None):
     return combos
 
 
-def count_combinations(model, family):
+def count_model_combinations(model, family):
     """Takes a model and a family string, and returns the number of matching
     residue combinations in that model."""
 
@@ -139,3 +139,59 @@ def split_dataset(df):
     negatives = df.loc[df["positive"] == -1].iloc[:, :-1]
     core = df.iloc[:, 1:-1]
     return unlabelled, positives, negatives, core
+
+
+def family_count(family):
+    return sum([int(sub[1:]) for sub in split_family(family)])
+
+
+def residue_sequence_count(sequence):
+    return len([char for char in sequence if char.isupper()])
+
+
+def sequence_to_sample(sequence, id):
+    sample = {}
+    residues = [[i, char] for i, char in enumerate(sequence) if char.isupper()]
+    sample["id"] = id
+    for i, residues in enumerate(zip(residues[:-1], residues[1:]), start=1):
+        sample[f"gap{i}"] = residues[1][0] - residues[0][0]
+    return sample
+
+
+def sequence_to_residue_combos(sequence, family, limit=None, ignore=None):
+    sequence = sequence.lower()
+    combo_count = count_sequence_combinations(sequence, family)
+    indices = random.sample(range(combo_count), limit)\
+     if limit and limit <= combo_count else range(combo_count)
+    subfamilies = split_family(family)
+    residue_combos = []
+    for subfamily in subfamilies:
+        residues = [i for i, char in enumerate(sequence)
+         if char == subfamily[0].lower()]
+        residue_combos.append(combinations(residues, int(subfamily[1:])))
+    initial_combos = product(*residue_combos)
+    count, combos = 0, []
+    for combo in initial_combos:
+        if count in indices:
+            combo = tuple([item for sublist in combo for item in sublist])
+            if not ignore or combo not in ignore:
+                combos.append(combo)
+        count += 1
+    return ["".join([
+     c.upper() if i in combo else c for i, c in enumerate(sequence)
+    ]) for combo in combos]
+
+
+def count_sequence_combinations(sequence, family):
+    """Takes a sequence and a family string, and returns the number of matching
+    residue combinations in that sequence."""
+
+    subfamilies = split_family(family)
+    counts = [[len([
+     c for c in sequence.upper() if c == f[0]
+    ]), int(f[1:])] for f in subfamilies]
+    combo_counts = [(math.factorial(c[0]) / (
+     math.factorial(c[1]) * math.factorial(c[0] - c[1]
+    ))) if c[0] - c[1] >= 0 else 0 for c in counts]
+    count = reduce(lambda x, y: x * y, combo_counts) if combo_counts else 0
+    return int(count)

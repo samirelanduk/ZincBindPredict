@@ -28,7 +28,7 @@ def main():
     for family in FAMILIES:
         print(f"Getting data for {family} binding sites...")
         pdbs = fetch_data(API_URL, QUERY, variables={"family": family})
-        pdbs = [pdb for pdb in pdbs if pdb["zincsites"]][:10]
+        pdbs = [pdb for pdb in pdbs if pdb["zincsites"]]
         update_data_file(family, "structure")
         site_count = sum([len(pdb["zincsites"]) for pdb in pdbs])
         print(f"Got {len(pdbs)} PDBs with {site_count} relevant binding sites")
