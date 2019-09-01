@@ -15,5 +15,3 @@ for category in ["structure", "sequence"]:
     for family in families:
         with open(f"data/notebooks/{family}-{category}.ipynb", "w") as f:
             f.write(template.replace("X1", family))
-
-

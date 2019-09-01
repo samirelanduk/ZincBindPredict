@@ -139,7 +139,7 @@ class ResiduesToSampleTests(TestCase):
 class ModelToResidueCombinationsTests(TestCase):
 
     def setUp(self):
-        self.patch1 = patch("data.utilities.count_combinations")
+        self.patch1 = patch("data.utilities.count_model_combinations")
         self.mock_count = self.patch1.start()
         self.patch2 = patch("random.sample")
         self.mock_sample = self.patch2.start()
@@ -317,7 +317,7 @@ class ModelCombinationsCountTests(TestCase):
 
     def test_can_count_no_matching_residues(self):
         self.model.residues.side_effect = lambda code: []
-        count = count_combinations(self.model, "H3")
+        count = count_model_combinations(self.model, "H3")
         self.mock_split.assert_called_with("H3")
         self.model.residues.assert_called_with(code="H")
         self.assertEqual(count, 0)
@@ -325,7 +325,7 @@ class ModelCombinationsCountTests(TestCase):
 
     def test_can_count_insufficient_matching_residues(self):
         self.model.residues.side_effect = lambda code: ["R1", "R2"]
-        count = count_combinations(self.model, "H3")
+        count = count_model_combinations(self.model, "H3")
         self.mock_split.assert_called_with("H3")
         self.model.residues.assert_called_with(code="H")
         self.assertEqual(count, 0)
@@ -333,7 +333,7 @@ class ModelCombinationsCountTests(TestCase):
 
     def test_can_count_single_combination(self):
         self.model.residues.side_effect = lambda code: ["R1", "R2", "R3"]
-        count = count_combinations(self.model, "H3")
+        count = count_model_combinations(self.model, "H3")
         self.mock_split.assert_called_with("H3")
         self.model.residues.assert_called_with(code="H")
         self.assertEqual(count, 1)
@@ -341,11 +341,11 @@ class ModelCombinationsCountTests(TestCase):
 
     def test_can_count_many_combinations(self):
         self.model.residues.side_effect = lambda code: ["R1", "R2", "R3", "R4", "R5"]
-        count = count_combinations(self.model, "H3")
+        count = count_model_combinations(self.model, "H3")
         self.mock_split.assert_called_with("H3")
         self.model.residues.assert_called_with(code="H")
         self.assertEqual(count, 10)
-        count = count_combinations(self.model, "C4")
+        count = count_model_combinations(self.model, "C4")
         self.mock_split.assert_called_with("C4")
         self.model.residues.assert_called_with(code="C")
         self.assertEqual(count, 5)
@@ -354,7 +354,7 @@ class ModelCombinationsCountTests(TestCase):
     def test_can_return_combinations_from_different_subfamilies(self):
         self.mock_split.side_effect = lambda family: ["H2", "C3"]
         self.model.residues.side_effect = [["H1", "H2", "H3"], ["C1", "C2", "C3", "C4"]]
-        count = count_combinations(self.model, "H2C3")
+        count = count_model_combinations(self.model, "H2C3")
         self.mock_split.assert_called_with("H2C3")
         self.model.residues.assert_any_call(code="H")
         self.model.residues.assert_any_call(code="C")
@@ -362,7 +362,7 @@ class ModelCombinationsCountTests(TestCase):
 
         self.mock_split.side_effect = lambda family: ["H3", "C1"]
         self.model.residues.side_effect = [["H1", "H2", "H3", "H4"], ["C1", "C2"]]
-        count = count_combinations(self.model, "H3C1")
+        count = count_model_combinations(self.model, "H3C1")
         self.mock_split.assert_called_with("H3C1")
         self.model.residues.assert_any_call(code="H")
         self.model.residues.assert_any_call(code="C")
@@ -370,7 +370,7 @@ class ModelCombinationsCountTests(TestCase):
 
         self.mock_split.side_effect = lambda family: ["H2", "C2", "E2"]
         self.model.residues.side_effect = [["H1", "H2", "H3"], ["C1", "C2", "C3"], ["E1", "E2", "E3"]]
-        count = count_combinations(self.model, "H2C2E2")
+        count = count_model_combinations(self.model, "H2C2E2")
         self.mock_split.assert_called_with("H2C2E2")
         self.model.residues.assert_any_call(code="H")
         self.model.residues.assert_any_call(code="C")
@@ -381,7 +381,7 @@ class ModelCombinationsCountTests(TestCase):
     def test_can_count_insufficient_residues_in_one_subfamily(self):
         self.mock_split.side_effect = lambda family: ["H2", "C2", "E2"]
         self.model.residues.side_effect = [["H1", "H2", "H3"], ["C1", "C2", "C3"], []]
-        count = count_combinations(self.model, "H2C2E2")
+        count = count_model_combinations(self.model, "H2C2E2")
         self.mock_split.assert_called_with("H2C2E2")
         self.model.residues.assert_any_call(code="H")
         self.model.residues.assert_any_call(code="C")
