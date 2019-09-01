@@ -1,0 +1,129 @@
+{
+    "cells": [
+     {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+       "# X1\n",
+       "\n",
+       "This notebook summarises the X1 sequence dataset. This dataset will be used to train supervised learning models that try to determine whether a given combination of residues is a potential X1 zinc binding site.\n",
+       "\n",
+       "First the data will be loaded and processed."
+      ]
+     },
+     {
+      "cell_type": "code",
+      "execution_count": null,
+      "metadata": {},
+      "outputs": [],
+      "source": [
+       "%matplotlib inline \n",
+       "import pandas as pd\n",
+       "import matplotlib.pyplot as plt\n",
+       "from IPython.display import display\n",
+       "from pandas.plotting import scatter_matrix\n",
+       "import sys\n",
+       "sys.path.append(\"../..\")\n",
+       "from data.utilities import split_dataset\n",
+       "\n",
+       "data = pd.read_csv(\"../csv/sequence/X1.csv\")\n",
+       "unlabelled, positives, negatives, core = split_dataset(data)"
+      ]
+     },
+     {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+       "There are now five datasets - the original, one with the labels removed, the positive cases with labels removed, the negative cases with the labels removed, and one with IDs and labels removed.\n",
+       "\n",
+       "A brief summary of the data will be calculated now:"
+      ]
+     },
+     {
+      "cell_type": "code",
+      "execution_count": null,
+      "metadata": {},
+      "outputs": [],
+      "source": [
+       "print(\"Positive samples\")\n",
+       "display(positives.describe())\n",
+       "positives.hist(bins=50, figsize=(20,15))\n",
+       "plt.show()"
+      ]
+     },
+     {
+      "cell_type": "code",
+      "execution_count": null,
+      "metadata": {},
+      "outputs": [],
+      "source": [
+       "print(\"Negative samples\")\n",
+       "display(negatives.describe())\n",
+       "negatives.hist(bins=50, figsize=(20,15))\n",
+       "plt.show()"
+      ]
+     },
+     {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+       "We have looked at each column in the dataset in isolation - their key features, and their distributions. Now each column will be compared pairwise to get a sense for what is correlated with what:"
+      ]
+     },
+     {
+      "cell_type": "code",
+      "execution_count": null,
+      "metadata": {
+       "scrolled": false
+      },
+      "outputs": [],
+      "source": [
+       "attributes = [name for name in unlabelled.columns[1:] if name not in [\"helix\", \"strand\"]]\n",
+       "colors=[0, \"red\", \"lightgray\"]\n",
+       "scatter_matrix(data[attributes], figsize=(18, 12), c=data.positive.apply(lambda x:colors[x]), alpha=0.3)\n",
+       "plt.show()"
+      ]
+     },
+     {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+       "Now a single pair of columns will be picked and compared, just to see more detail in the dataset itself."
+      ]
+     },
+     {
+      "cell_type": "code",
+      "execution_count": null,
+      "metadata": {
+       "scrolled": false
+      },
+      "outputs": [],
+      "source": [
+       "unlabelled.plot(kind=\"scatter\", x=\"gap1\", y=\"gap2\", alpha=0.1, figsize=(18, 12), c=data.positive.apply(lambda x:colors[x]))\n",
+       "plt.show()"
+      ]
+     }
+    ],
+    "metadata": {
+     "kernelspec": {
+      "display_name": "Python 3",
+      "language": "python",
+      "name": "python3"
+     },
+     "language_info": {
+      "codemirror_mode": {
+       "name": "ipython",
+       "version": 3
+      },
+      "file_extension": ".py",
+      "mimetype": "text/x-python",
+      "name": "python",
+      "nbconvert_exporter": "python",
+      "pygments_lexer": "ipython3",
+      "version": "3.7.2"
+     }
+    },
+    "nbformat": 4,
+    "nbformat_minor": 2
+   }
+   
