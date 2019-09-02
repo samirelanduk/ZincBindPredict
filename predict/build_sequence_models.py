@@ -5,7 +5,7 @@ from sklearn.model_selection import train_test_split
 from sklearn.metrics import recall_score, precision_score
 from sklearn.model_selection import cross_validate
 import joblib
-from config import STRUCTURE_CONFIG
+from config import SEQUENCE_CONFIG
 
 # What families are there?
 csvs = [csv[:-4] for csv in os.listdir("data/csv/sequence") if csv.endswith("csv")]
@@ -24,7 +24,7 @@ for csv in csvs:
     np.save(f"predict/npy/sequence/{csv}_test", data_test)
 
     # Get the models to be used
-    for Model, hyperparameters in STRUCTURE_CONFIG.items():
+    for Model, hyperparameters in SEQUENCE_CONFIG.items():
         print("   ", Model.__name__)
 
         # Create the model with hyperparameters

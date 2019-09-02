@@ -14,3 +14,17 @@ STRUCTURE_CONFIG = {
         "probability": True
     }
 }
+
+SEQUENCE_CONFIG = {
+    KNeighborsClassifier: {
+
+    },
+    RandomForestClassifier: {
+        "n_estimators": 10
+    },
+    SVC: {
+        "gamma": "scale",
+        "probability": True,
+        "class_weight": {1: 100}
+    }
+}
