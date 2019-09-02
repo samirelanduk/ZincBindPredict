@@ -35,7 +35,7 @@ for category in categories:
         np.save(f"predict/npy/{category}/{csv}", data)
 
         # Split into train and test data, and save
-        data_train, data_test = train_test_split(data)
+        data_train, data_test = train_test_split(data, random_state=23)
         data_train, data_test = data_train[:, 1:], data_test[:, 1:]
         np.save(f"predict/npy/{category}/{csv}_train", data_train)
         np.save(f"predict/npy/{category}/{csv}_test", data_test)
