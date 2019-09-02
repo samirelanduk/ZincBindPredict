@@ -10,7 +10,10 @@ from django.conf import settings
 from .utilities import *
 
 PATHS = {
- "/structure?code=XXXX": "Find zinc binding sites in PDB structure"
+ "/structure?code=XXXX": "Find zinc binding sites in PDB structure",
+ "/structure/{ID}/": "The results of a structure job",
+ "/sequence?sequence=XXXXXXXXXX": "Find zinc binding sites in peptide sequence",
+ "/sequence/{ID}/": "The results of a sequence job"
 }
 
 def root(request):
