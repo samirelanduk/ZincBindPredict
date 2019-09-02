@@ -2,6 +2,8 @@ import os
 import pandas as pd
 import numpy as np
 from sklearn.model_selection import train_test_split
+from sklearn.pipeline import Pipeline
+from sklearn.preprocessing import StandardScaler
 from sklearn.metrics import recall_score, precision_score
 from sklearn.model_selection import cross_validate
 import joblib
@@ -28,7 +30,10 @@ for csv in csvs:
         print("   ", Model.__name__)
 
         # Create the model with hyperparameters
-        model = Model(**hyperparameters)
+        model = Pipeline([
+         ("scaler", StandardScaler()),
+         ("model", Model(**hyperparameters))
+        ])
 
         # Train model
         X_train, y_train = data_train[:, :-1], data_train[:, -1].astype("int")
