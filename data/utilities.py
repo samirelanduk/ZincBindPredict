@@ -76,28 +76,34 @@ def residues_to_sample(residues, site_id):
     except Exception as e: return None
 
 
-def model_to_residue_combos(model, family, limit=None, ignore=None):
+def model_to_residue_combos(model, family, ignore=None):
     """Takes an atomium model and returns all combinations of residues which
     match the family given. You can limit the number of combinations it returns
     to prevent catastrophic consumption of residues if you want."""
 
-    combo_count = count_model_combinations(model, family)
-    indices = random.sample(range(combo_count), limit)\
-     if limit and limit <= combo_count else range(combo_count)
     subfamilies = split_family(family)
-    residue_combos = []
+    residues = []
     for subfamily in subfamilies:
-        residues = model.residues(code=subfamily[0])
-        residue_combos.append(combinations(residues, int(subfamily[1:])))
-    initial_combos = product(*residue_combos)
-    count, combos = 0, []
-    for combo in initial_combos:
-        if count in indices:
-            combo = tuple([item for sublist in combo for item in sublist])
+        residues += list(model.residues(code=subfamily[0]))
+    residues = {r: [r] for r in residues}
+    for res in residues:
+        for other_res in residues:
+            if res is not other_res and res.atom(name="CA") and\
+             other_res.atom(name="CA") and\
+              res.atom(name="CA").distance_to(other_res.atom(name="CA")) <= 10:
+                residues[res].append(other_res)
+    combos = set()
+    for res in residues:
+        residue_combos = []
+        for subfamily in subfamilies:
+            sub_res = [r for r in residues[res] if r.code == subfamily[0]]
+            residue_combos.append(combinations(sub_res, int(subfamily[1:])))
+        initial_combos = product(*residue_combos)
+        for combo in initial_combos:
+            combo = frozenset([item for sublist in combo for item in sublist])
             ids = set([res.id for res in combo])
             if not ignore or ids not in ignore:
-                combos.append(combo)
-        count += 1
+                combos.add(combo)
     return combos
 
 

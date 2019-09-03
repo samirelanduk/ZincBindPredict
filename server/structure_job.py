@@ -49,7 +49,7 @@ for family in families:
     write_job(job)
 
     # Get potential sites
-    combos = model_to_residue_combos(structure, family)
+    combos = [list(c) for c in model_to_residue_combos(structure, family)]
     inputs = []
     for combo in combos:
         inputs.append(list(residues_to_sample(combo, "X").values())[1:])

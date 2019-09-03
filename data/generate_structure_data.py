@@ -55,7 +55,7 @@ def main():
         
             # Get some negative cases
             negative_combos = model_to_residue_combos(
-             model, family, limit=len(samples) * NEGATIVES, ignore=seen_residue_ids
+             model, family, ignore=seen_residue_ids
             )
             for combo in negative_combos:
                 sample = residues_to_sample(combo, f"{pdb['id']}-N")
