@@ -136,7 +136,7 @@ class ResiduesToSampleTests(TestCase):
         
 
 
-class ModelToResidueCombinationsTests(TestCase):
+'''class ModelToResidueCombinationsTests(TestCase):
 
     def setUp(self):
         self.patch1 = patch("data.utilities.count_model_combinations")
@@ -298,7 +298,7 @@ class ModelToResidueCombinationsTests(TestCase):
          (res[0], res[1], res[3], res[4], res[7], res[8]),
          (res[0], res[1], res[3], res[5], res[7], res[8]),
         ])
-
+'''
 
 
 class ModelCombinationsCountTests(TestCase):

@@ -1,6 +1,7 @@
 import math
 import random
 import os
+import atomium
 from itertools import combinations, product
 from functools import reduce
 import numpy as np
@@ -72,6 +73,17 @@ def residues_to_sample(residues, site_id):
         sample["cb_max"] = round(max(betas), 3)
         sample["helix"] = len([r for r in residues if r.helix])
         sample["strand"] = len([r for r in residues if r.strand])
+        
+        stabiliser_contacts = set()
+        for residue in residues:
+            for atom in residue.atoms():
+                nearby = atom.nearby_atoms(3)
+                for nearby_atom in nearby:
+                    if isinstance(nearby_atom.het, atomium.Residue)\
+                     and nearby_atom.het not in residues:
+                        stabiliser_contacts.add((atom, nearby_atom))
+
+        sample["contacts"] = len(stabiliser_contacts)
         return sample
     except Exception as e: return None
 
@@ -80,7 +92,7 @@ def model_to_residue_combos(model, family, ignore=None):
     """Takes an atomium model and returns all combinations of residues which
     match the family given. You can limit the number of combinations it returns
     to prevent catastrophic consumption of residues if you want."""
-
+    
     subfamilies = split_family(family)
     residues = []
     for subfamily in subfamilies:

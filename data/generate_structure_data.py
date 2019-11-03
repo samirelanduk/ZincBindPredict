@@ -11,7 +11,7 @@ API_URL = "https://api.zincbind.net/"
 
 QUERY = """
 query ZincSites($family: String) { pdbs(resolution__lt: 2) { edges { node {
-    id assembly zincsites(family: $family) { edges { node { id residues {
+    id assembly zincsites(family: $family) { edges { node { id residues(primary: true) {
         edges { node { atomiumId chainSignature atoms(name: "CA") {
             edges { node { x y z } }
         } } }
@@ -36,6 +36,7 @@ def main():
         # Go through each PDB and get the relevant model
         for i, pdb in enumerate(tqdm(pdbs)):
             model = atomium.fetch(pdb["id"]).generate_assembly(pdb["assembly"])
+            model.optimise_distances()
             samples, seen_residue_ids = [], []
 
             # Get the positive cases

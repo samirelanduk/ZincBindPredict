@@ -1,5 +1,5 @@
 django==2.2.4
-atomium>=1.0
+atomium==1.0.2
 kirjava
 tqdm
 
