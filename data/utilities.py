@@ -75,15 +75,19 @@ def residues_to_sample(residues, site_id):
         sample["strand"] = len([r for r in residues if r.strand])
         
         stabiliser_contacts = set()
+        hydrogen_bonds = set()
         for residue in residues:
             for atom in residue.atoms():
-                nearby = atom.nearby_atoms(3)
+                nearby = atom.nearby_atoms(3.5)
                 for nearby_atom in nearby:
                     if isinstance(nearby_atom.het, atomium.Residue)\
-                     and nearby_atom.het not in residues:
+                     and nearby_atom.het is not residue:
                         stabiliser_contacts.add((atom, nearby_atom))
+                        if atom.element in ["N", "O", "CL"] and nearby_atom.element in ["N", "O", "CL"]:
+                            hydrogen_bonds.add((atom, nearby_atom))
 
         sample["contacts"] = len(stabiliser_contacts)
+        sample["h_bonds"] = len(hydrogen_bonds)
         return sample
     except Exception as e: return None
 
