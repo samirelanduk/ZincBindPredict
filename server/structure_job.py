@@ -5,17 +5,32 @@ import atomium
 import joblib
 from utilities import *
 
-# What is the job ID
-if len(sys.argv) < 2:
-    print("Please provide Job ID")
-    sys.exit(1)
-job_id = sys.argv[1]
+def update_status(job_id, status):
+    with open(f"server/jobs/{job_id}/status.txt", "w") as f:
+        f.write(status)
 
-# Make sure there is a folder for this job
+
+job_id = sys.argv[1]
+filename = get_job_structure_file(job_id)
+pdb = atomium.open(f"server/jobs/{job_id}/{filename}")
+structure = pdb.model
+
+combos = [list(c) for c in model_to_residue_combos(structure, "C4")]
+classifier = joblib.load(f"predict/models/structure/C4-randomforest.joblib")
+inputs = [list(residues_to_sample(combo, "X").values())[1:] for combo in combos]
+y = classifier.predict(inputs)
+prob = classifier.predict_proba(inputs)
+sites = [(combos[i], prob[i][1]) for i, o in enumerate(y) if o == 1]
+print(sites)
+
+update_status(job_id, "complete")
+    
+
+'''# Make sure there is a folder for this job
 if not os.path.exists(f"server/jobs/{job_id}"):
     print("There's no job with that ID")
     sys.exit(1)
-filename = get_job_structure_file(job_id)
+
 
 # Create initial job JSON
 job = {
@@ -83,4 +98,4 @@ for family in families:
     
 # Finish job
 job["status"] = f"complete"
-write_job(job)
+write_job(job)'''
