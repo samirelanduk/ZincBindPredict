@@ -17,6 +17,7 @@ ROOT_URLCONF = "server.urls"
 
 INSTALLED_APPS = [
  "django.contrib.staticfiles",
+ "graphene_django",
  "server"
 ]
 
@@ -28,6 +29,15 @@ MIDDLEWARE = [
  "django.middleware.common.CommonMiddleware",
 ]
 
+TEMPLATES = [{
+ "BACKEND": "django.template.backends.django.DjangoTemplates",
+ "APP_DIRS": True
+}]
+
 STATIC_URL = "/static/"
 
 JOB_EXPIRATION = 10
+
+GRAPHENE = {
+ "SCHEMA": "server.schema.schema"
+}

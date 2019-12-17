@@ -1,5 +1,6 @@
 django==2.2.8
 atomium==1.0.2
+graphene_django
 kirjava
 tqdm
 
