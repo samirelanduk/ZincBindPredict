@@ -101,6 +101,7 @@ def model_to_residue_combos(model, family, ignore=None):
     residues = []
     for subfamily in subfamilies:
         residues += list(model.residues(code=subfamily[0]))
+    print(family)
     residues = {r: [r] for r in residues}
     for res in residues:
         for other_res in residues:

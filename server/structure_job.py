@@ -23,7 +23,6 @@ pdb = atomium.open(f"server/jobs/{job_id}/{filename}")
 structure = pdb.model
 
 update_status(job_id, "Identifying candidate residues")
-combos = [list(c) for c in model_to_residue_combos(structure, "C4")]
 
 # what models are there?
 models = [f[:-7] for f in os.listdir("predict/models/structure") if f.endswith("joblib")]
@@ -35,10 +34,14 @@ for model in models:
     family = model.split("-")[0]
     result = {"name": model, "sites": []}
     classifier = joblib.load(f"predict/models/structure/{model}.joblib")
+    combos = [list(c) for c in model_to_residue_combos(structure, family)]
     inputs = [list(residues_to_sample(combo, "X").values())[1:] for combo in combos]
-    y = classifier.predict(inputs)
-    prob = classifier.predict_proba(inputs)
-    sites = [(combos[i], prob[i][1]) for i, o in enumerate(y) if o == 1]
+    if inputs:
+        y = classifier.predict(inputs)
+        prob = classifier.predict_proba(inputs)
+        sites = [(combos[i], prob[i][1]) for i, o in enumerate(y) if o == 1]
+    else:
+        sites = []
     for site in sites:
         result["sites"].append({
             "probability": round(site[1], 3), "family": family, "model": model,
