@@ -5,6 +5,7 @@ secrets.py
 *.csv
 *.joblib
 *.png
+*.svg
 *.log
 *.ipynb*
 *.npy

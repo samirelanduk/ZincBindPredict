@@ -7,7 +7,7 @@ import warnings
 import joblib
 import matplotlib.pyplot as plt
 from sklearn.model_selection import train_test_split, cross_validate
-from sklearn.metrics import recall_score, precision_score, roc_auc_score
+from sklearn.metrics import recall_score, precision_score, roc_auc_score, roc_curve
 from sklearn.ensemble import RandomForestClassifier
 
 warnings.filterwarnings("ignore", category=FutureWarning)
@@ -48,9 +48,20 @@ for category in categories:
         model.validation_precision_ = scores["test_precision"].mean()
         model.validation_roc_auc_ = scores["test_roc_auc"].mean()
 
+        y_pred = model.predict(X_train)
+        fpr, tpr, thresholds = roc_curve(y_train, y_pred, drop_intermediate=False)
+        plt.plot(fpr, tpr, color="#643b78", label=f"ROC Curve (AUC: {round(model.validation_roc_auc_)})")
+        plt.plot([0, 1], [0, 1], linestyle="--")
+        plt.xlabel("False Positive Rate")
+        plt.ylabel("True Positive Rate")
+        plt.title(f"{family}, randomforest")
+        plt.legend()
+        plt.savefig(f"predict/models/{category}/{family}-randomforest.svg")
+        
         # Test model
         X_test, y_test = data_test[:, :-1], data_test[:, -1].astype("int")
         y_pred = model.predict(X_test)
+        
         model.test_recall_ = recall_score(y_test, y_pred)
         model.test_precision_ = precision_score(y_test, y_pred)
         model.test_roc_auc_ = roc_auc_score(y_test, y_pred)
