@@ -52,8 +52,10 @@ class ModelType(graphene.ObjectType):
     sites = graphene.ConnectionField(SiteConnection)
     validation_recall = graphene.Float()
     validation_precision = graphene.Float()
+    validation_roc_auc = graphene.Float()
     test_recall = graphene.Float()
     test_precision = graphene.Float()
+    test_roc_auc = graphene.Float()
 
     def resolve_sites(self, info, **kwargs):
         return [SiteType(**s) for s in self.sites]

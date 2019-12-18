@@ -37,8 +37,10 @@ for model in models:
         "name": model, "sites": [],
         "validation_recall": round(classifier.validation_recall_, 3),
         "validation_precision": round(classifier.validation_precision_, 3),
+        "validation_roc_auc": round(classifier.validation_roc_auc_, 3),
         "test_recall": round(classifier.test_recall_, 3),
-        "test_precision": round(classifier.test_precision_, 3)
+        "test_precision": round(classifier.test_precision_, 3),
+        "test_roc_auc": round(classifier.test_roc_auc_, 3),
     }
     combos = [list(c) for c in model_to_residue_combos(structure, family)]
     inputs = [list(residues_to_sample(combo, "X").values())[1:] for combo in combos]

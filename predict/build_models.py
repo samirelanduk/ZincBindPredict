@@ -5,8 +5,9 @@ import os
 import pandas as pd
 import warnings
 import joblib
+import matplotlib.pyplot as plt
 from sklearn.model_selection import train_test_split, cross_validate
-from sklearn.metrics import recall_score, precision_score
+from sklearn.metrics import recall_score, precision_score, roc_auc_score
 from sklearn.ensemble import RandomForestClassifier
 
 warnings.filterwarnings("ignore", category=FutureWarning)
@@ -41,16 +42,18 @@ for category in categories:
 
         # Evaluate model
         scores = cross_validate(
-            model, X_train, y_train, cv=5, scoring=["recall", "precision"]
+            model, X_train, y_train, cv=5, scoring=["recall", "precision", "roc_auc"]
         )
         model.validation_recall_ = scores["test_recall"].mean()
         model.validation_precision_ = scores["test_precision"].mean()
+        model.validation_roc_auc_ = scores["test_roc_auc"].mean()
 
         # Test model
         X_test, y_test = data_test[:, :-1], data_test[:, -1].astype("int")
         y_pred = model.predict(X_test)
         model.test_recall_ = recall_score(y_test, y_pred)
         model.test_precision_ = precision_score(y_test, y_pred)
+        model.test_roc_auc_ = roc_auc_score(y_test, y_pred)
 
         # Save model
         joblib.dump(model, f"predict/models/{category}/{family}-randomforest.joblib")
