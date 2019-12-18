@@ -1,8 +1,10 @@
 #! /usr/bin/env python3
 
 import sys
-import atomium
+import os
 import joblib
+import json
+import atomium
 from utilities import *
 
 def update_status(job_id, status):
@@ -10,18 +12,39 @@ def update_status(job_id, status):
         f.write(status)
 
 
+def update_results(job_id, results):
+    with open(f"server/jobs/{job_id}/results.json", "w") as f:
+        json.dump(results, f)
+
+
 job_id = sys.argv[1]
 filename = get_job_structure_file(job_id)
 pdb = atomium.open(f"server/jobs/{job_id}/{filename}")
 structure = pdb.model
 
+update_status(job_id, "Identifying candidate residues")
 combos = [list(c) for c in model_to_residue_combos(structure, "C4")]
-classifier = joblib.load(f"predict/models/structure/C4-randomforest.joblib")
-inputs = [list(residues_to_sample(combo, "X").values())[1:] for combo in combos]
-y = classifier.predict(inputs)
-prob = classifier.predict_proba(inputs)
-sites = [(combos[i], prob[i][1]) for i, o in enumerate(y) if o == 1]
-print(sites)
+
+# what models are there?
+models = [f[:-7] for f in os.listdir("predict/models/structure") if f.endswith("joblib")]
+families = sorted(list(set(m.split("-")[0] for m in models)))
+
+
+results = []
+for model in models:
+    result = {"name": model, "sites": []}
+    classifier = joblib.load(f"predict/models/structure/{model}.joblib")
+    inputs = [list(residues_to_sample(combo, "X").values())[1:] for combo in combos]
+    y = classifier.predict(inputs)
+    prob = classifier.predict_proba(inputs)
+    sites = [(combos[i], prob[i][1]) for i, o in enumerate(y) if o == 1]
+    for site in sites:
+        result["sites"].append({
+            "probability": round(site[1], 3),
+            "residues": [{"id": res.id, "name": res.name} for res in site[0]]
+        })
+    results.append(result)
+    update_results(job_id, results)
 
 update_status(job_id, "complete")
     
