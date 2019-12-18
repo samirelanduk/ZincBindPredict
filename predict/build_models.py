@@ -5,7 +5,8 @@ import os
 import pandas as pd
 import warnings
 import joblib
-from sklearn.model_selection import train_test_split
+from sklearn.model_selection import train_test_split, cross_validate
+from sklearn.metrics import recall_score, precision_score
 from sklearn.ensemble import RandomForestClassifier
 
 warnings.filterwarnings("ignore", category=FutureWarning)
@@ -14,7 +15,7 @@ categories = ["structure", "sequence"]
 families = open("data/families.dat").read().splitlines()
 for arg in sys.argv:
     if arg.startswith("--categories="):
-        types = [c for c in arg[8:].split(",") if c in categories]
+        categories = [c for c in arg[13:].split(",") if c in categories]
         continue
     if arg.startswith("--families="):
         families = [f for f in arg[11:].split(",") if f in families]
@@ -37,6 +38,19 @@ for category in categories:
         model = RandomForestClassifier()
         X_train, y_train = data_train[:, :-1], data_train[:, -1].astype("int")
         model.fit(X_train, y_train)
+
+        # Evaluate model
+        scores = cross_validate(
+            model, X_train, y_train, cv=5, scoring=["recall", "precision"]
+        )
+        model.validation_recall_ = scores["test_recall"].mean()
+        model.validation_precision_ = scores["test_precision"].mean()
+
+        # Test model
+        X_test, y_test = data_test[:, :-1], data_test[:, -1].astype("int")
+        y_pred = model.predict(X_test)
+        model.test_recall_ = recall_score(y_test, y_pred)
+        model.test_precision_ = precision_score(y_test, y_pred)
 
         # Save model
         joblib.dump(model, f"predict/models/{category}/{family}-randomforest.joblib")

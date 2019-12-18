@@ -32,8 +32,14 @@ families = sorted(list(set(m.split("-")[0] for m in models)))
 results = {}
 for model in models:
     family = model.split("-")[0]
-    result = {"name": model, "sites": []}
     classifier = joblib.load(f"predict/models/structure/{model}.joblib")
+    result = {
+        "name": model, "sites": [],
+        "validation_recall": round(classifier.validation_recall_, 3),
+        "validation_precision": round(classifier.validation_precision_, 3),
+        "test_recall": round(classifier.test_recall_, 3),
+        "test_precision": round(classifier.test_precision_, 3)
+    }
     combos = [list(c) for c in model_to_residue_combos(structure, family)]
     inputs = [list(residues_to_sample(combo, "X").values())[1:] for combo in combos]
     if inputs:
@@ -45,7 +51,7 @@ for model in models:
     for site in sites:
         result["sites"].append({
             "probability": round(site[1], 3), "family": family, "model": model,
-            "residues": [{"id": res.id, "name": res.name} for res in site[0]]
+            "residues": [{"id": res.id, "name": res.name} for res in site[0]],
         })
     results[model] = result
     update_results(job_id, results)
