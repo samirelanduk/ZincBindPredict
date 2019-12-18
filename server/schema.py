@@ -9,6 +9,8 @@ from graphql import GraphQLError
 from django.conf import settings
 from .utilities import save_pdb_code
 
+results = None
+
 class ResidueType(graphene.ObjectType):
 
     id = graphene.String()
@@ -19,10 +21,16 @@ class ResidueType(graphene.ObjectType):
 class SiteType(graphene.ObjectType):
 
     probability = graphene.Float()
+    family = graphene.String()
     residues = graphene.List(ResidueType)
+    model = graphene.Field(lambda: ModelType)
 
     def resolve_residues(self, info, **kwargs):
         return [ResidueType(**r) for r in self.residues]
+    
+
+    def resolve_model(self, info, **kwargs):
+        return ModelType(**results[self.model])
 
 
 
@@ -67,6 +75,7 @@ class JobType(graphene.ObjectType):
     expires = graphene.String()
     status = graphene.String()
     models = graphene.ConnectionField(ModelConnection)
+    sites = graphene.ConnectionField(SiteConnection)
 
     def resolve_submitted(self, info, **kwargs):
         return str(datetime.utcfromtimestamp(int(self.id) // 1000)) + " UTC"
@@ -87,10 +96,22 @@ class JobType(graphene.ObjectType):
     
 
     def resolve_models(self, info, **kwargs):
+        global results
         try:
             with open(f"server/jobs/{self.id}/results.json") as f:
                 results = json.load(f)
-            return [ModelType(**r) for r in results]
+            return [ModelType(**r) for r in results.values()]
+        except FileNotFoundError:
+            return []
+    
+
+    def resolve_sites(self, info, **kwargs):
+        global results
+        try:
+            with open(f"server/jobs/{self.id}/results.json") as f:
+                results = json.load(f)
+            return [SiteType(**site) for sites in [m["sites"] for m in results.values()] for site in sites]
+            
         except FileNotFoundError:
             return []
 

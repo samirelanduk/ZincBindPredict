@@ -30,8 +30,9 @@ models = [f[:-7] for f in os.listdir("predict/models/structure") if f.endswith("
 families = sorted(list(set(m.split("-")[0] for m in models)))
 
 
-results = []
+results = {}
 for model in models:
+    family = model.split("-")[0]
     result = {"name": model, "sites": []}
     classifier = joblib.load(f"predict/models/structure/{model}.joblib")
     inputs = [list(residues_to_sample(combo, "X").values())[1:] for combo in combos]
@@ -40,10 +41,10 @@ for model in models:
     sites = [(combos[i], prob[i][1]) for i, o in enumerate(y) if o == 1]
     for site in sites:
         result["sites"].append({
-            "probability": round(site[1], 3),
+            "probability": round(site[1], 3), "family": family, "model": model,
             "residues": [{"id": res.id, "name": res.name} for res in site[0]]
         })
-    results.append(result)
+    results[model] = result
     update_results(job_id, results)
 
 update_status(job_id, "complete")
