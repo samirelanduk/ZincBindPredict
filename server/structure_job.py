@@ -18,10 +18,14 @@ def update_results(job_id, results):
 
 
 job_id = sys.argv[1]
+assembly = sys.argv[2]
 filename = get_job_structure_file(job_id)
 pdb = atomium.open(f"server/jobs/{job_id}/{filename}")
-structure = pdb.model
-
+try:
+    structure = pdb.generate_assembly(int(assembly)) if int(assembly) else pdb.model
+except:
+    update_status(job_id, f"Job failed: invalid assembly")
+    sys.exit()
 
 
 # what models are there?

@@ -127,6 +127,7 @@ class SubmitStructure(graphene.Mutation):
 
     class Arguments:
         code = graphene.String()
+        assembly = graphene.Int(required=False)
 
     job = graphene.Field(JobType)
 
@@ -135,7 +136,7 @@ class SubmitStructure(graphene.Mutation):
         os.mkdir(f"server/jobs/{job_id}")
         if not save_pdb_code(kwargs["code"], job_id):
             raise GraphQLError("That does not seem to be a valid PDB code")
-        Popen(["server/structure_job.py", str(job_id)])
+        Popen(["server/structure_job.py", str(job_id), str(kwargs.get("assembly", 0))])
         return SubmitStructure(job=JobType(id=str(job_id)))
 
 
