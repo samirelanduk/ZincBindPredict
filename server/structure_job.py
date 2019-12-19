@@ -22,7 +22,7 @@ filename = get_job_structure_file(job_id)
 pdb = atomium.open(f"server/jobs/{job_id}/{filename}")
 structure = pdb.model
 
-update_status(job_id, "Identifying candidate residues")
+
 
 # what models are there?
 models = [f[:-7] for f in os.listdir("predict/models/structure") if f.endswith("joblib")]
@@ -31,6 +31,7 @@ families = sorted(list(set(m.split("-")[0] for m in models)))
 
 results = {}
 for model in models:
+    update_status(job_id, f"Running {model}")
     family = model.split("-")[0]
     classifier = joblib.load(f"predict/models/structure/{model}.joblib")
     result = {

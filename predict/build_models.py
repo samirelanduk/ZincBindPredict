@@ -48,15 +48,16 @@ for category in categories:
         model.validation_precision_ = scores["test_precision"].mean()
         model.validation_roc_auc_ = scores["test_roc_auc"].mean()
 
-        y_pred = model.predict(X_train)
+        y_pred = model.predict_proba(X_train)[:,1]
         fpr, tpr, thresholds = roc_curve(y_train, y_pred, drop_intermediate=False)
-        plt.plot(fpr, tpr, color="#643b78", label=f"ROC Curve (AUC: {round(model.validation_roc_auc_)})")
+        plt.plot(fpr, tpr, color="#643b78", label=f"ROC Curve (AUC: {round(model.validation_roc_auc_, 3)})")
         plt.plot([0, 1], [0, 1], linestyle="--")
         plt.xlabel("False Positive Rate")
         plt.ylabel("True Positive Rate")
         plt.title(f"{family}, randomforest")
         plt.legend()
         plt.savefig(f"predict/models/{category}/{family}-randomforest.svg")
+        plt.clf()
         
         # Test model
         X_test, y_test = data_test[:, :-1], data_test[:, -1].astype("int")
