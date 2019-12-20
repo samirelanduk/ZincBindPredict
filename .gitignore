@@ -9,4 +9,6 @@ secrets.py
 *.log
 *.ipynb*
 *.npy
+*.json
+test_metrics.py
 server/jobs/*
