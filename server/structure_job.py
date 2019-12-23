@@ -39,7 +39,7 @@ for model in models:
     family = model.split("-")[0]
     classifier = joblib.load(f"predict/models/structure/{model}.joblib")
     result = {
-        "name": model, "sites": [],
+        "name": model, "sites": [], "rejected": [],
         "validation_recall": round(classifier.validation_recall_, 3),
         "validation_precision": round(classifier.validation_precision_, 3),
         "validation_roc_auc": round(classifier.validation_roc_auc_, 3),
@@ -53,10 +53,17 @@ for model in models:
         y = classifier.predict(inputs)
         prob = classifier.predict_proba(inputs)
         sites = [(combos[i], prob[i][1]) for i, o in enumerate(y) if o == 1]
+        rejected = [(combos[i], prob[i][1]) for i, o in enumerate(y) if o != 1]
     else:
         sites = []
+        rejected = []
     for site in sites:
         result["sites"].append({
+            "probability": round(site[1], 3), "family": family, "model": model,
+            "residues": [{"id": res.id, "name": res.name} for res in site[0]],
+        })
+    for site in rejected:
+        result["rejected"].append({
             "probability": round(site[1], 3), "family": family, "model": model,
             "residues": [{"id": res.id, "name": res.name} for res in site[0]],
         })

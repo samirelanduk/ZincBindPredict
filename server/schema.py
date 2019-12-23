@@ -50,6 +50,7 @@ class ModelType(graphene.ObjectType):
 
     name = graphene.String()
     sites = graphene.ConnectionField(SiteConnection)
+    rejected = graphene.ConnectionField(SiteConnection)
     validation_recall = graphene.Float()
     validation_precision = graphene.Float()
     validation_roc_auc = graphene.Float()
@@ -59,6 +60,10 @@ class ModelType(graphene.ObjectType):
 
     def resolve_sites(self, info, **kwargs):
         return [SiteType(**s) for s in self.sites]
+    
+
+    def resolve_rejected(self, info, **kwargs):
+        return [SiteType(**s) for s in self.rejected]
 
 
 
@@ -82,6 +87,7 @@ class JobType(graphene.ObjectType):
     status = graphene.String()
     models = graphene.ConnectionField(ModelConnection)
     sites = graphene.ConnectionField(SiteConnection)
+    rejected = graphene.ConnectionField(SiteConnection)
 
     def resolve_submitted(self, info, **kwargs):
         return str(datetime.utcfromtimestamp(int(self.id) // 1000)) + " UTC"
@@ -117,7 +123,16 @@ class JobType(graphene.ObjectType):
             with open(f"server/jobs/{self.id}/results.json") as f:
                 results = json.load(f)
             return [SiteType(**site) for sites in [m["sites"] for m in results.values()] for site in sites]
-            
+        except FileNotFoundError:
+            return []
+    
+
+    def resolve_rejected(self, info, **kwargs):
+        global results
+        try:
+            with open(f"server/jobs/{self.id}/results.json") as f:
+                results = json.load(f)
+            return [SiteType(**site) for sites in [m["rejected"] for m in results.values()] for site in sites]
         except FileNotFoundError:
             return []
 

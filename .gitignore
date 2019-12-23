@@ -11,4 +11,5 @@ secrets.py
 *.npy
 *.json
 test_metrics.py
+explore.py
 server/jobs/*
