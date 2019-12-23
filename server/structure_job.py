@@ -52,8 +52,8 @@ for model in models:
     if inputs:
         y = classifier.predict(inputs)
         prob = classifier.predict_proba(inputs)
-        sites = [(combos[i], prob[i][1]) for i, o in enumerate(y) if o == 1]
-        rejected = [(combos[i], prob[i][1]) for i, o in enumerate(y) if o != 1]
+        sites = [(combos[i], prob[i][1], inputs[i]) for i, o in enumerate(y) if o == 1]
+        rejected = [(combos[i], prob[i][1], inputs[i]) for i, o in enumerate(y) if o != 1]
     else:
         sites = []
         rejected = []
@@ -61,11 +61,13 @@ for model in models:
         result["sites"].append({
             "probability": round(site[1], 3), "family": family, "model": model,
             "residues": [{"id": res.id, "name": res.name} for res in site[0]],
+            "vector": site[2]
         })
     for site in rejected:
         result["rejected"].append({
             "probability": round(site[1], 3), "family": family, "model": model,
             "residues": [{"id": res.id, "name": res.name} for res in site[0]],
+            "vector": site[2]
         })
     results[model] = result
     update_results(job_id, results)

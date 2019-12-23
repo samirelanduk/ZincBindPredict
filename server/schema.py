@@ -23,6 +23,7 @@ class SiteType(graphene.ObjectType):
     probability = graphene.Float()
     family = graphene.String()
     residues = graphene.List(ResidueType)
+    vector = graphene.List(graphene.Float)
     model = graphene.Field(lambda: ModelType)
 
     def resolve_residues(self, info, **kwargs):
