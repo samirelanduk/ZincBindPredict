@@ -102,11 +102,14 @@ def model_to_residue_combos(model, family, ignore=None):
     for subfamily in subfamilies:
         residues += list(model.residues(code=subfamily[0]))
     residues = {r: [r] for r in residues}
+
+    atoms = {"HIS": "CG", "CYS": "SG", "GLU": "CD", "ASP": "CG"}
     for res in residues:
         for other_res in residues:
-            if res is not other_res and res.atom(name="CA") and\
-             other_res.atom(name="CA") and\
-              res.atom(name="CA").distance_to(other_res.atom(name="CA")) <= 10:
+            name1, name2 = atoms.get(res.name, "CB"), atoms.get(other_res.name, "CB")
+            if res is not other_res and res.atom(name=name1) and\
+             other_res.atom(name=name2) and\
+              res.atom(name=name1).distance_to(other_res.atom(name=name2)) <= 9:
                 residues[res].append(other_res)
     combos = set()
     for res in residues:
