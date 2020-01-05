@@ -21,7 +21,7 @@ query ZincSites($family: String) { pdbs(resolution__lt: 2) { edges { node {
 
 with open("data/families.dat") as f:
     FAMILIES = f.read().splitlines()
-
+#FAMILIES = ["H3"]
 NEGATIVES = 100
 
 def main():

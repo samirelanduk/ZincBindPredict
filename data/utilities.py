@@ -74,7 +74,7 @@ def residues_to_sample(residues, site_id):
         sample["helix"] = len([r for r in residues if r.helix])
         sample["strand"] = len([r for r in residues if r.strand])
         
-        stabiliser_contacts = set()
+        '''stabiliser_contacts = set()
         hydrogen_bonds = set()
         for residue in residues:
             for atom in residue.atoms():
@@ -87,7 +87,7 @@ def residues_to_sample(residues, site_id):
                             hydrogen_bonds.add((atom, nearby_atom))
 
         sample["contacts"] = len(stabiliser_contacts)
-        sample["h_bonds"] = len(hydrogen_bonds)
+        sample["h_bonds"] = len(hydrogen_bonds)'''
         return sample
     except Exception as e: return None
 
@@ -103,13 +103,11 @@ def model_to_residue_combos(model, family, ignore=None):
         residues += list(model.residues(code=subfamily[0]))
     residues = {r: [r] for r in residues}
 
-    atoms = {"HIS": "CG", "CYS": "SG", "GLU": "CD", "ASP": "CG"}
     for res in residues:
         for other_res in residues:
-            name1, name2 = atoms.get(res.name, "CB"), atoms.get(other_res.name, "CB")
-            if res is not other_res and res.atom(name=name1) and\
-             other_res.atom(name=name2) and\
-              res.atom(name=name1).distance_to(other_res.atom(name=name2)) <= 9:
+            if res is not other_res and res.atom(name="CA") and\
+             other_res.atom(name="CA") and\
+              res.atom(name="CA").distance_to(other_res.atom(name="CA")) <= 25:
                 residues[res].append(other_res)
     combos = set()
     for res in residues:

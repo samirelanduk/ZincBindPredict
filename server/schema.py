@@ -113,7 +113,7 @@ class JobType(graphene.ObjectType):
         try:
             with open(f"server/jobs/{self.id}/results.json") as f:
                 results = json.load(f)
-            return [ModelType(**r) for r in results.values()]
+            return [ModelType(**r) for k, r in results.items() if k != "time"]
         except FileNotFoundError:
             return []
     

@@ -12,4 +12,5 @@ secrets.py
 *.json
 test_metrics.py
 explore.py
+diagnose.py
 server/jobs/*

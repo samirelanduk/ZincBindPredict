@@ -5,6 +5,7 @@ import os
 import joblib
 import json
 import atomium
+import time
 from utilities import *
 
 def update_status(job_id, status):
@@ -16,13 +17,14 @@ def update_results(job_id, results):
     with open(f"server/jobs/{job_id}/results.json", "w") as f:
         json.dump(results, f)
 
-
+start = time.time()
 job_id = sys.argv[1]
 assembly = sys.argv[2]
 filename = get_job_structure_file(job_id)
 pdb = atomium.open(f"server/jobs/{job_id}/{filename}")
 try:
     structure = pdb.generate_assembly(int(assembly)) if int(assembly) else pdb.model
+    structure.optimise_distances()
 except:
     update_status(job_id, f"Job failed: invalid assembly")
     sys.exit()
@@ -33,7 +35,7 @@ models = [f[:-7] for f in os.listdir("predict/models/structure") if f.endswith("
 families = sorted(list(set(m.split("-")[0] for m in models)))
 
 
-results = {}
+results = {"time": time.time() - start}
 for model in models:
     update_status(job_id, f"Running {model}")
     family = model.split("-")[0]
@@ -70,6 +72,7 @@ for model in models:
             "vector": site[2]
         })
     results[model] = result
+    results["time"] = time.time() - start
     update_results(job_id, results)
 
 update_status(job_id, "complete")
