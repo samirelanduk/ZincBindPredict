@@ -10,6 +10,7 @@ from itertools import product
 import matplotlib.pyplot as plt
 from sklearn.model_selection import train_test_split, cross_validate, learning_curve
 from sklearn.metrics import recall_score, precision_score, f1_score, roc_auc_score, roc_curve
+from collections import Counter
 from models import MODELS
 
 categories = ["structure", "sequence"]
@@ -59,6 +60,7 @@ for category in categories:
         X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=23)
 
         # Go through models
+        trained_models = []
         for Model in MODELS:
             model_name = MODELS[Model]["name"]
             print("       ", model_name)
@@ -130,6 +132,7 @@ for category in categories:
             y_pred = model.predict(X_test)
             test_recall = recall_score(y_test, y_pred)
             test_precision = precision_score(y_test, y_pred)
+            trained_models.append(model)
             
             # Final train and save
             print("            Saving final model...")
@@ -143,6 +146,14 @@ for category in categories:
             if "SVM" in model_name:
                 del results[category][family][model_name]["hyperparameters"]["probability"]
             with open("results.json", "w") as f: json.dump(results, f, indent=4)
+        
+        # Get ensemble of methods for this family
+        print("        Ensemble")
+        results[category][family]["ensemble"] = {}
+        predictions = [model.predict(X_test) for model in trained_models]
+        y_pred = [Counter(l).most_common(1)[0][0] for l in zip(*predictions)]
+        results[category][family]["ensemble"]["recall"] = recall_score(y_test, y_pred)
+        results[category][family]["ensemble"]["precision"] = precision_score(y_test, y_pred)
 
 
 print("Final Metrics")
