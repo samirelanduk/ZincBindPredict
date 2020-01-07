@@ -13,12 +13,17 @@ from models import MODELS
 
 categories = ["structure", "sequence"]
 families = open("data/families.dat").read().splitlines()
+proportion = 1
 for arg in sys.argv:
     if arg.startswith("--categories="):
         categories = [c for c in arg[13:].split(",") if c in categories]
         continue
     if arg.startswith("--families="):
         families = [f for f in arg[11:].split(",") if f in families]
+        continue
+    if arg.startswith("--proportion="):
+        proportion = float(arg[13:])
+        assert 0 < proportion <= 1
         continue
 
 results = {}
@@ -37,7 +42,7 @@ for category in categories:
             usecols=lambda c: c not in ["id", "site"]
         ).values
         np.random.shuffle(data)
-        data = data
+        if proportion != 1: data = data[:int(len(data) * proportion)]
 
         # Get input and label objects
         X, y = data[:, :-1], data[:, -1]
@@ -69,7 +74,11 @@ for category in categories:
             # Create learning curve
             print("            Calculating learning curve...")
             model = Model(**hyperparameters)
-            scores = learning_curve(model, X_train, y_train, train_sizes=[0.01, 0.02, 0.03, 0.04, 0.05, 0.06, 0.08, 0.1, 0.2, 0.3, 0.4, 0.6, 0.8, 1], scoring="f1", cv=5, n_jobs=-1)
+            train_sizes = [x for x in [
+                0.01, 0.02, 0.03, 0.04, 0.05, 0.06, 0.08, 0.1, 0.2, 0.3, 0.4, 0.6, 0.8, 1
+            ] if 1 / (800 * x) <= proportion]
+            print(train_sizes)
+            scores = learning_curve(model, X_train, y_train, train_sizes=train_sizes, scoring="f1", cv=5, n_jobs=-1)
             plt.plot(scores[0], [v.mean() for v in scores[1]], label="Train F1")
             plt.plot(scores[0], [v.mean() for v in scores[2]], label="Test F1")
             plt.legend()
