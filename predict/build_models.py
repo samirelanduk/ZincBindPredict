@@ -3,6 +3,7 @@
 import sys
 import os
 import pandas as pd
+import numpy as np
 import joblib
 from itertools import product
 import matplotlib.pyplot as plt
@@ -35,6 +36,8 @@ for category in categories:
             f"data/csv/{category}/{family}.csv",
             usecols=lambda c: c not in ["id", "site"]
         ).values
+        np.random.shuffle(data)
+        data = data
 
         # Get input and label objects
         X, y = data[:, :-1], data[:, -1]
@@ -78,6 +81,7 @@ for category in categories:
 
             # Create AUC plot for these hyperparameters
             print("            ROC/AUC...")
+            if "SVM" in model_name: hyperparameters["probability"] = True
             model = Model(**hyperparameters)
             model.fit(X_train, y_train)
             y_pred = model.predict_proba(X_test)[:,1]

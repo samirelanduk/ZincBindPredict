@@ -1,5 +1,6 @@
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.neighbors import KNeighborsClassifier
+from sklearn.svm import SVC
 
 MODELS = {
     RandomForestClassifier: {"name": "Random Forest", "hyperparameters": { 
@@ -7,5 +8,9 @@ MODELS = {
     }},
     KNeighborsClassifier: {"name": "K Nearest Neighbor", "hyperparameters": {
         "n_neighbors": [1, 3, 5]
+    }},
+    SVC: {"name": "SVM", "hyperparameters": {
+        "C": [0.5, 1, 2], "kernel": ["rbf", "linear", "sigmoid"],
+        "gamma": ["scale", "auto"]
     }}
 }
