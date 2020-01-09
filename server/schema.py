@@ -4,6 +4,7 @@ import json
 from datetime import datetime, timedelta
 from subprocess import Popen
 import graphene
+import joblib
 from graphene.relay import Connection, ConnectionField
 from graphql import GraphQLError
 from django.conf import settings
@@ -49,15 +50,20 @@ class SiteConnection(Connection):
 
 class ModelType(graphene.ObjectType):
 
-    name = graphene.String()
-    sites = graphene.ConnectionField(SiteConnection)
+    method = graphene.String()
+    family = graphene.String()
+    category = graphene.String()
+    recall = graphene.Float()
+    precision = graphene.Float()
+    hyperparameters = graphene.String()
+    '''sites = graphene.ConnectionField(SiteConnection)
     rejected = graphene.ConnectionField(SiteConnection)
     validation_recall = graphene.Float()
     validation_precision = graphene.Float()
     validation_roc_auc = graphene.Float()
     test_recall = graphene.Float()
     test_precision = graphene.Float()
-    test_roc_auc = graphene.Float()
+    test_roc_auc = graphene.Float()'''
 
     def resolve_sites(self, info, **kwargs):
         return [SiteType(**s) for s in self.sites]
@@ -159,12 +165,69 @@ class SubmitStructure(graphene.Mutation):
 
 class Query(graphene.ObjectType):
     job = graphene.Field(JobType, id=graphene.String(required=True))
+    model = graphene.Field(
+        ModelType, category=graphene.String(required=True),
+        family=graphene.String(required=True), method=graphene.String(required=True)
+    )
+    models = graphene.ConnectionField(
+        ModelConnection, category=graphene.String(),
+        family=graphene.String(), method=graphene.String()
+    )
 
     def resolve_job(self, info, **kwargs):
         if os.path.exists(f"server/jobs/{kwargs['id']}"):
             return JobType(id=kwargs["id"])
+    
 
+    def resolve_model(self, info, **kwargs):
+        with open("predict/models/results.json") as f:
+            model_results = json.load(f)
+        model = None
+        for category in model_results:
+            if kwargs["category"] == category: 
+                for family in model_results[category]:
+                    if kwargs["family"] == family: 
+                        for model_name in model_results[category][family]:
+                            method = model_name.replace(" ", "")
+                            if kwargs["method"] == method: 
+                                model_results[category][family][model_name]["category"] = category
+                                model_results[category][family][model_name]["family"] = family
+                                model_results[category][family][model_name]["method"] = method
+                                model_results[category][family][model_name]["hyperparameters"] = ",".join(
+                                    [f"{k}:{str(v)}" for k, v in model_results[category][family][model_name]["hyperparameters"].items()]
+                                )
+                                model = model_results[category][family][model_name]
+        return ModelType(
+            **{k: model[k] for k in ["method", "family", "category", "recall", "precision", "hyperparameters"]}
+        ) if model else None
+    
 
+    def resolve_models(self, info, **kwargs):
+        with open("predict/models/results.json") as f:
+            model_results = json.load(f)
+        models = []
+        print(models)
+        for category in model_results:
+            if "category" not in kwargs or kwargs["category"] == category: 
+                for family in model_results[category]:
+                    if "family" not in kwargs or kwargs["family"] == family: 
+                        for model_name in model_results[category][family]:
+                            if model_name == "ensemble": continue
+                            method = model_name.replace(" ", "")
+                            if "method" not in kwargs or kwargs["method"] == method:
+                                model_results[category][family][model_name]["category"] = category
+                                model_results[category][family][model_name]["family"] = family
+                                model_results[category][family][model_name]["method"] = method
+                                model_results[category][family][model_name]["hyperparameters"] = ",".join(
+                                    [f"{k}:{str(v)}" for k, v in model_results[category][family][model_name]["hyperparameters"].items()]
+                                )
+                                models.append(model_results[category][family][model_name])
+        print(models)
+        return [ModelType(
+            **{k: model[k] for k in ["method", "family", "category", "recall", "precision", "hyperparameters"]}
+        ) for model in models]
+
+ 
 
 class Mutations(graphene.ObjectType):
     submit_structure = SubmitStructure.Field()

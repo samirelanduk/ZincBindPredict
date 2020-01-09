@@ -34,7 +34,8 @@ for arg in sys.argv:
 
 results = {}
 try:
-    with open("results.json") as f: old_results = json.load(f)
+    with open(os.path.join("predict", "models", "results.json")) as f:
+        old_results = json.load(f)
 except: old_results = {}
 
 for category in categories:
@@ -145,7 +146,8 @@ for category in categories:
             joblib.dump(model, f"predict/models/{category}/{family}-{model_name.replace(' ', '-')}.joblib")
             if "SVM" in model_name:
                 del results[category][family][model_name]["hyperparameters"]["probability"]
-            with open("results.json", "w") as f: json.dump(results, f, indent=4)
+            with open(os.path.join("predict", "models", "results.json"), "w") as f:
+                json.dump(results, f, indent=4)
         
         # Get ensemble of methods for this family
         print("        Ensemble")
