@@ -56,14 +56,20 @@ class ModelType(graphene.ObjectType):
     recall = graphene.Float()
     precision = graphene.Float()
     hyperparameters = graphene.String()
-    '''sites = graphene.ConnectionField(SiteConnection)
+
+
+
+class JobModelType(graphene.ObjectType):
+    method = graphene.String()
+    family = graphene.String()
+    category = graphene.String()
+    sites = graphene.ConnectionField(SiteConnection)
     rejected = graphene.ConnectionField(SiteConnection)
-    validation_recall = graphene.Float()
-    validation_precision = graphene.Float()
-    validation_roc_auc = graphene.Float()
+    recall = graphene.Float()
+    precision = graphene.Float()
     test_recall = graphene.Float()
     test_precision = graphene.Float()
-    test_roc_auc = graphene.Float()'''
+    test_roc_auc = graphene.Float()
 
     def resolve_sites(self, info, **kwargs):
         return [SiteType(**s) for s in self.sites]
@@ -86,13 +92,25 @@ class ModelConnection(Connection):
 
 
 
+class JobModelConnection(Connection):
+
+    class Meta:
+        node = JobModelType
+    
+    count = graphene.Int()
+
+    def resolve_count(self, info, **kwargs):
+        return len(self.edges)
+
+
+
 class JobType(graphene.ObjectType):
 
     id = graphene.String()
     submitted = graphene.String()
     expires = graphene.String()
     status = graphene.String()
-    models = graphene.ConnectionField(ModelConnection)
+    models = graphene.ConnectionField(JobModelConnection)
     sites = graphene.ConnectionField(SiteConnection)
     rejected = graphene.ConnectionField(SiteConnection)
 
@@ -119,7 +137,12 @@ class JobType(graphene.ObjectType):
         try:
             with open(f"server/jobs/{self.id}/results.json") as f:
                 results = json.load(f)
-            return [ModelType(**r) for k, r in results.items() if k != "time"]
+            for key, value in results.items():
+                if key != "time":
+                    value["family"] = value["name"].split("-")[0]
+                    value["method"] = "".join(value["name"].split("-")[1:])
+                    del value["name"]
+            return [JobModelType(**r) for k, r in results.items() if k != "time"]
         except FileNotFoundError:
             return []
     
@@ -129,7 +152,7 @@ class JobType(graphene.ObjectType):
         try:
             with open(f"server/jobs/{self.id}/results.json") as f:
                 results = json.load(f)
-            return [SiteType(**site) for sites in [m["sites"] for m in results.values()] for site in sites]
+            return [SiteType(**site) for sites in [m["sites"] for k, m in results.items() if k != "time"] for site in sites]
         except FileNotFoundError:
             return []
     
@@ -206,7 +229,6 @@ class Query(graphene.ObjectType):
         with open("predict/models/results.json") as f:
             model_results = json.load(f)
         models = []
-        print(models)
         for category in model_results:
             if "category" not in kwargs or kwargs["category"] == category: 
                 for family in model_results[category]:
@@ -222,7 +244,6 @@ class Query(graphene.ObjectType):
                                     [f"{k}:{str(v)}" for k, v in model_results[category][family][model_name]["hyperparameters"].items()]
                                 )
                                 models.append(model_results[category][family][model_name])
-        print(models)
         return [ModelType(
             **{k: model[k] for k in ["method", "family", "category", "recall", "precision", "hyperparameters"]}
         ) for model in models]
