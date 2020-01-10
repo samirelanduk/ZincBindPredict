@@ -29,12 +29,13 @@ MIDDLEWARE = [
  "django.middleware.common.CommonMiddleware",
 ]
 
+STATIC_URL = "/static/"
+STATIC_ROOT = os.path.abspath(f"{BASE_DIR}/../static")
+
 TEMPLATES = [{
  "BACKEND": "django.template.backends.django.DjangoTemplates",
  "APP_DIRS": True
 }]
-
-STATIC_URL = "/static/"
 
 JOB_EXPIRATION = 10
 
