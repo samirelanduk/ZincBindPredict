@@ -12,7 +12,7 @@ from .utilities import save_pdb_code
 
 results = None
 
-class ResidueType(graphene.ObjectType):
+'''class ResidueType(graphene.ObjectType):
 
     id = graphene.String()
     name = graphene.String()
@@ -168,24 +168,6 @@ class JobType(graphene.ObjectType):
 
 
 
-class SubmitStructure(graphene.Mutation):
-
-    class Arguments:
-        code = graphene.String()
-        assembly = graphene.Int(required=False)
-
-    job = graphene.Field(JobType)
-
-    def mutate(self, info, **kwargs):
-        job_id = int(time.time() * 1000)
-        os.mkdir(f"server/jobs/{job_id}")
-        if not save_pdb_code(kwargs["code"], job_id):
-            raise GraphQLError("That does not seem to be a valid PDB code")
-        Popen(["server/structure_job.py", str(job_id), str(kwargs.get("assembly", 0))])
-        return SubmitStructure(job=JobType(id=str(job_id)))
-
-
-
 class Query(graphene.ObjectType):
     job = graphene.Field(JobType, id=graphene.String(required=True))
     model = graphene.Field(
@@ -249,9 +231,65 @@ class Query(graphene.ObjectType):
         ) for model in models]
 
  
+class SubmitStructure(graphene.Mutation):
+
+    class Arguments:
+        code = graphene.String()
+        assembly = graphene.Int(required=False)
+
+    job = graphene.Field(JobType)
+
+    def mutate(self, info, **kwargs):
+        job_id = int(time.time() * 1000)
+        os.mkdir(f"server/jobs/{job_id}")
+        if not save_pdb_code(kwargs["code"], job_id):
+            raise GraphQLError("That does not seem to be a valid PDB code")
+        Popen(["server/structure_job.py", str(job_id), str(kwargs.get("assembly", 0))])
+        return SubmitStructure(job=JobType(id=str(job_id)))'''
+
+
+
+class Query(graphene.ObjectType):
+    
+    field = graphene.String()
+
+
+
+class SearchStructure(graphene.Mutation):
+
+    class Arguments:
+        structure = graphene.String(required=True)
+        families = graphene.List(graphene.String, description="Site families to limit to")
+        probability = graphene.Float(description="Probability threshold")
+        find_half = graphene.Boolean(description="Look for half sites instead")
+        use_families_models = graphene.Boolean(description="Use family based models")
+        use_location_models = graphene.Boolean(description="Use location based models")
+
+    
+    success = graphene.Boolean()
+
+    def mutate(self, info, **kwargs):
+        return SearchStructure(success=True)
+
+
+
+class SearchSequence(graphene.Mutation):
+
+    class Arguments:
+        sequence = graphene.String(required=True)
+        families = graphene.List(graphene.String, description="Site families to limit to")
+        probability = graphene.Float(description="Probability threshold")
+    
+    success = graphene.Boolean()
+
+    def mutate(self, info, **kwargs):
+        return SearchSequence(success=True)
+
+
 
 class Mutations(graphene.ObjectType):
-    submit_structure = SubmitStructure.Field()
+    search_structure = SearchStructure.Field()
+    search_sequence = SearchSequence.Field()
 
 
 schema = graphene.Schema(query=Query, mutation=Mutations)
