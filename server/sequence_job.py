@@ -1,17 +1,17 @@
 #! /usr/bin/env python3
 
 import sys
-import atomium
+import json
 import joblib
 from utilities import *
 
-# What is the job ID
+# Get arguments from JSON
 if len(sys.argv) < 2:
-    print("Please provide Job ID")
+    print("Please provide JSON arguments")
     sys.exit(1)
-job_id = sys.argv[1]
+arguments = json.loads(sys.argv[1])
 
-# What is the sequence?
+"""# What is the sequence?
 if len(sys.argv) < 3:
     print("Please provide sequence")
     sys.exit(1)
@@ -83,4 +83,4 @@ for family in families:
     
 # Finish job
 job["status"] = f"complete"
-write_job(job)
+write_job(job)"""

@@ -1,6 +1,17 @@
 #! /usr/bin/env python3
 
 import sys
+import json
+import joblib
+from utilities import *
+
+# Get arguments from JSON
+if len(sys.argv) < 2:
+    print("Please provide JSON arguments")
+    sys.exit(1)
+arguments = json.loads(sys.argv[1])
+
+"""import sys
 import os
 import joblib
 import json
@@ -69,4 +80,4 @@ for model in models:
         })
     results[model] = result
     results["time"] = time.time() - start
-    update_results(job_id, results)
+    update_results(job_id, results)"""

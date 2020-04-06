@@ -265,11 +265,15 @@ class SearchStructure(graphene.Mutation):
         use_families_models = graphene.Boolean(description="Use family based models")
         use_location_models = graphene.Boolean(description="Use location based models")
 
-    
-    success = graphene.Boolean()
+    job_id = graphene.String()
 
     def mutate(self, info, **kwargs):
-        return SearchStructure(success=True)
+        kwargs["job_id"] = str(int(time.time() * 1000))
+        location = f"server{os.path.sep}jobs{os.path.sep}{kwargs['job_id']}.json"
+        with open(location, "w") as f:
+            json.dump({"type": "structure", "protein": kwargs["structure"]}, f)
+        Popen(["server/structure_job.py", json.dumps(kwargs)])
+        return SearchStructure(job_id=kwargs["job_id"])
 
 
 
@@ -280,10 +284,15 @@ class SearchSequence(graphene.Mutation):
         families = graphene.List(graphene.String, description="Site families to limit to")
         probability = graphene.Float(description="Probability threshold")
     
-    success = graphene.Boolean()
+    job_id = graphene.String()
 
     def mutate(self, info, **kwargs):
-        return SearchSequence(success=True)
+        kwargs["job_id"] = str(int(time.time() * 1000))
+        location = f"server{os.path.sep}jobs{os.path.sep}{kwargs['job_id']}.json"
+        with open(location, "w") as f:
+            json.dump({"type": "sequence", "protein": kwargs["sequence"]}, f)
+        Popen(["server/sequence_job.py", json.dumps(kwargs)])
+        return SearchSequence(job_id=kwargs["job_id"])
 
 
 
