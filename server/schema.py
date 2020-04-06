@@ -249,12 +249,21 @@ class SubmitStructure(graphene.Mutation):
 
 
 
+class ResidueType(graphene.ObjectType):
+
+    id = graphene.String()
+    name = graphene.String()
+
 
 
 class SiteType(graphene.ObjectType):
 
     probability = graphene.Float()
     family = graphene.String()
+    residues = graphene.List(ResidueType)
+
+    def resolve_residues(self, info, **kwargs):
+        return [ResidueType(**res) for res in self.residues]
 
 
 

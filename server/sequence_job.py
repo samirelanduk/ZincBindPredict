@@ -21,8 +21,11 @@ try:
     for possible in range(possibles):
         family = choice(["H3", "C4", "C2H2"])
         probability = random()
+        residues = [
+            {"name": "HIS", "id": "A.123"}, {"name": "HIS", "id": "A.123"}
+        ]
         l = job["sites"] if probability > 0.8 else job["rejected"]
-        l.append({"family": family, "probability": probability})
+        l.append({"family": family, "probability": probability, "residues": residues})
         save_job(job)
 
 except:
