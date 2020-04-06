@@ -249,9 +249,34 @@ class SubmitStructure(graphene.Mutation):
 
 
 
+def get_job_location(id):
+    return f"server{os.path.sep}jobs{os.path.sep}{id}.json"
+
+
+class JobType(graphene.ObjectType):
+    
+    id = graphene.String()
+    time = graphene.String()
+    status = graphene.String()
+    type = graphene.String()
+    protein = graphene.String()
+
+    def resolve_time(self, info, **kwargs):
+        return datetime.utcfromtimestamp(
+            int(self.id) / 1000
+        ).strftime("%Y-%m-%d %H:%M:%S UTC")
+    
+
+
+
+
 class Query(graphene.ObjectType):
     
-    field = graphene.String()
+    job = graphene.Field(JobType, id=graphene.String(required=True))
+
+    def resolve_job(self, info, **kwargs):
+        with open(get_job_location(kwargs["id"])) as f:
+            return JobType(**json.load(f))
 
 
 
@@ -269,9 +294,13 @@ class SearchStructure(graphene.Mutation):
 
     def mutate(self, info, **kwargs):
         kwargs["job_id"] = str(int(time.time() * 1000))
-        location = f"server{os.path.sep}jobs{os.path.sep}{kwargs['job_id']}.json"
-        with open(location, "w") as f:
-            json.dump({"type": "structure", "protein": kwargs["structure"]}, f)
+        with open(get_job_location(kwargs["job_id"]), "w") as f:
+            json.dump({
+                "id": kwargs["job_id"],
+                "status": "initialising",
+                "type": "structure",
+                "protein": kwargs["structure"]
+            }, f)
         Popen(["server/structure_job.py", json.dumps(kwargs)])
         return SearchStructure(job_id=kwargs["job_id"])
 
@@ -288,9 +317,13 @@ class SearchSequence(graphene.Mutation):
 
     def mutate(self, info, **kwargs):
         kwargs["job_id"] = str(int(time.time() * 1000))
-        location = f"server{os.path.sep}jobs{os.path.sep}{kwargs['job_id']}.json"
-        with open(location, "w") as f:
-            json.dump({"type": "sequence", "protein": kwargs["sequence"]}, f)
+        with open(get_job_location(kwargs["job_id"]), "w") as f:
+            json.dump({
+                "id": kwargs["job_id"],
+                "status": "initialising",
+                "type": "sequence",
+                "protein": kwargs["sequence"]
+            }, f)
         Popen(["server/sequence_job.py", json.dumps(kwargs)])
         return SearchSequence(job_id=kwargs["job_id"])
 
