@@ -7,6 +7,32 @@ from django.http import JsonResponse
 from data.utilities import model_to_residue_combos, residues_to_sample
 from data.utilities import sequence_to_residue_combos, sequence_to_sample
 
+def get_job_location(id):
+    return f"server{os.path.sep}jobs{os.path.sep}{id}.json"
+
+
+def save_job(job):
+    with open(get_job_location(job["id"]), "w") as f:
+        json.dump(job, f)
+
+
+def initialise_job(id, type, protein):
+    return {
+        "id": id,
+        "status": "initialising",
+        "type": type,
+        "protein": protein,
+        "sites": [], "rejected": []
+    }
+
+
+
+
+
+
+
+
+
 def save_pdb_code(code, job_id):
     url = f"https://mmtf.rcsb.org/v1.0/full/{code}"
     response = requests.get(url)

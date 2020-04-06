@@ -8,7 +8,7 @@ import joblib
 from graphene.relay import Connection, ConnectionField
 from graphql import GraphQLError
 from django.conf import settings
-from .utilities import save_pdb_code
+from .utilities import get_job_location, initialise_job
 
 results = None
 
@@ -249,8 +249,13 @@ class SubmitStructure(graphene.Mutation):
 
 
 
-def get_job_location(id):
-    return f"server{os.path.sep}jobs{os.path.sep}{id}.json"
+
+
+class SiteType(graphene.ObjectType):
+
+    probability = graphene.Float()
+    family = graphene.String()
+
 
 
 class JobType(graphene.ObjectType):
@@ -260,6 +265,8 @@ class JobType(graphene.ObjectType):
     status = graphene.String()
     type = graphene.String()
     protein = graphene.String()
+    sites = graphene.List(SiteType)
+    rejected = graphene.List(SiteType)
 
     def resolve_time(self, info, **kwargs):
         return datetime.utcfromtimestamp(
@@ -267,7 +274,13 @@ class JobType(graphene.ObjectType):
         ).strftime("%Y-%m-%d %H:%M:%S UTC")
     
 
+    def resolve_sites(self, info, **kwargs):
+        return [SiteType(**site) for site in self.sites]
+    
 
+    def resolve_rejected(self, info, **kwargs):
+        return [SiteType(**site) for site in self.rejected]
+    
 
 
 class Query(graphene.ObjectType):
@@ -294,13 +307,9 @@ class SearchStructure(graphene.Mutation):
 
     def mutate(self, info, **kwargs):
         kwargs["job_id"] = str(int(time.time() * 1000))
+        job = initialise_job(kwargs["job_id"], "structure", kwargs["structure"])
         with open(get_job_location(kwargs["job_id"]), "w") as f:
-            json.dump({
-                "id": kwargs["job_id"],
-                "status": "initialising",
-                "type": "structure",
-                "protein": kwargs["structure"]
-            }, f)
+            json.dump(job, f)
         Popen(["server/structure_job.py", json.dumps(kwargs)])
         return SearchStructure(job_id=kwargs["job_id"])
 
@@ -317,13 +326,9 @@ class SearchSequence(graphene.Mutation):
 
     def mutate(self, info, **kwargs):
         kwargs["job_id"] = str(int(time.time() * 1000))
+        job = initialise_job(kwargs["job_id"], "sequence", kwargs["sequence"])
         with open(get_job_location(kwargs["job_id"]), "w") as f:
-            json.dump({
-                "id": kwargs["job_id"],
-                "status": "initialising",
-                "type": "sequence",
-                "protein": kwargs["sequence"]
-            }, f)
+            json.dump(job, f)
         Popen(["server/sequence_job.py", json.dumps(kwargs)])
         return SearchSequence(job_id=kwargs["job_id"])
 

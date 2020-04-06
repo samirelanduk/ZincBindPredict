@@ -11,6 +11,25 @@ if len(sys.argv) < 2:
     sys.exit(1)
 arguments = json.loads(sys.argv[1])
 
+# Open JSON
+with open(get_job_location(arguments["job_id"])) as f: job = json.load(f)
+
+try:
+    # Make random sites
+    from random import random, choice
+    possibles = int(random() * 25)
+    for possible in range(possibles):
+        family = choice(["H3", "C4", "C2H2"])
+        probability = random()
+        l = job["sites"] if probability > 0.8 else job["rejected"]
+        l.append({"family": family, "probability": probability})
+        save_job(job)
+
+except:
+    job["status"] = "error"
+    with open(get_job_location(arguments["job_id"]), "w") as f:
+        json.dump(job, f)
+
 """# What is the sequence?
 if len(sys.argv) < 3:
     print("Please provide sequence")
