@@ -3,6 +3,7 @@ atomium==1.0.2
 graphene_django
 kirjava
 tqdm
+graphene-file-upload
 
 numpy
 pandas

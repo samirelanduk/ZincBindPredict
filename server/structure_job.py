@@ -11,6 +11,11 @@ if len(sys.argv) < 2:
     sys.exit(1)
 arguments = json.loads(sys.argv[1])
 
+# Open JSON
+with open(get_job_location(arguments["job_id"])) as f: job = json.load(f)
+
+families = ["H3", "C4", "C2H2"]
+
 """import sys
 import os
 import joblib

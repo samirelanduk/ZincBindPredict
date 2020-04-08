@@ -6,6 +6,7 @@ from subprocess import Popen
 import graphene
 import joblib
 from graphene.relay import Connection, ConnectionField
+from graphene_file_upload.scalars import Upload
 from graphql import GraphQLError
 from django.conf import settings
 from .utilities import get_job_location, initialise_job
@@ -305,7 +306,7 @@ class Query(graphene.ObjectType):
 class SearchStructure(graphene.Mutation):
 
     class Arguments:
-        structure = graphene.String(required=True)
+        structure = Upload(required=True)
         families = graphene.List(graphene.String, description="Site families to limit to")
         probability = graphene.Float(description="Probability threshold")
         find_half = graphene.Boolean(description="Look for half sites instead")
@@ -316,6 +317,11 @@ class SearchStructure(graphene.Mutation):
 
     def mutate(self, info, **kwargs):
         kwargs["job_id"] = str(int(time.time() * 1000))
+        file_extension = str(kwargs["structure"]).split(".")[-1]
+        file_location = get_job_location(kwargs["job_id"])[:-4] + file_extension
+        with open(file_location, "wb") as f:
+            f.write(kwargs["structure"].read())
+        kwargs["structure"] = kwargs["job_id"] + "." + file_extension
         job = initialise_job(kwargs["job_id"], "structure", kwargs["structure"])
         with open(get_job_location(kwargs["job_id"]), "w") as f:
             json.dump(job, f)
