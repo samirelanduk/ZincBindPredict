@@ -4,6 +4,7 @@ import requests
 import os
 import json
 from django.http import JsonResponse
+from data.utilities import split_family
 from data.utilities import model_to_residue_combos, residues_to_sample
 from data.utilities import sequence_to_residue_combos, sequence_to_sample
 
@@ -13,7 +14,7 @@ def get_job_location(id):
 
 def save_job(job):
     with open(get_job_location(job["id"]), "w") as f:
-        json.dump(job, f)
+        json.dump(job, f, indent=4)
 
 
 def initialise_job(id, type, protein):

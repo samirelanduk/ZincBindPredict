@@ -1,37 +1,79 @@
 #! /usr/bin/env python3
 
+"""This script finds zinc binding sites in a sequence."""
+
 import sys
 import json
 import joblib
+from itertools import combinations, product
 from utilities import *
+
+def sequence_to_family_inputs(sequence, family):
+    """Takes a sequence and returns a list of family inputs."""
+
+    sequence = sequence.lower()
+    subfamilies = split_family(family)
+    residue_combos = []
+    for subfamily in subfamilies:
+        residues = [i for i, char in enumerate(sequence)
+            if char == subfamily[0].lower()]
+        residue_combos.append(combinations(residues, int(subfamily[1:])))
+    initial_combos = product(*residue_combos)
+    return [c[0] for c in initial_combos]
+
+
+def sequence_site_to_vector(site):
+    """Takes a sequence site object and turns it into a feature vector."""
+    return []
 
 # Get arguments from JSON
 if len(sys.argv) < 2:
     print("Please provide JSON arguments")
     sys.exit(1)
 arguments = json.loads(sys.argv[1])
+sequence = arguments["sequence"].upper()
 
 # Open JSON
 with open(get_job_location(arguments["job_id"])) as f: job = json.load(f)
 
+families = ["H3", "C4", "C2H2"]
+
 try:
-    # Make random sites
-    from random import random, choice
-    possibles = int(random() * 25)
-    for possible in range(possibles):
-        family = choice(["H3", "C4", "C2H2"])
-        probability = random()
-        residues = [
-            {"name": "HIS", "id": "A.123"}, {"name": "HIS", "id": "A.123"}
-        ]
-        l = job["sites"] if probability > 0.8 else job["rejected"]
-        l.append({"family": family, "probability": probability, "residues": residues})
+    for family in families:
+        # Update status
+        job["status"] = f"Looking for {family} sites"
         save_job(job)
+
+        # Find possible sites for this family
+        possibles = list(sequence_to_family_inputs(sequence, family))
+
+        # Convert possible sites to vectors
+        vectors = [sequence_site_to_vector(possible) for possible in possibles]
+
+        # Run vectors through models
+        from random import random
+        from time import sleep
+        sleep(random() * 10)
+        probabilities = [round(random(), 4) for _ in vectors]
+
+        # Add sites to job object
+        for site, probability in zip(possibles, probabilities):
+            print(site, probability)
+            l = job["sites"] if probability > 0.8 else job["rejected"]
+            residues = [
+                {"name": sequence[index], "identifier": index} for index in site
+            ]
+            l.append({"family": family, "probability": probability, "residues": residues})
+        
+        # Save job
+        save_job(job)
+    
+    job["status"] = "complete"
+    save_job(job)
 
 except:
     job["status"] = "error"
-    with open(get_job_location(arguments["job_id"]), "w") as f:
-        json.dump(job, f)
+    save_job(job)
 
 """# What is the sequence?
 if len(sys.argv) < 3:

@@ -251,7 +251,7 @@ class SubmitStructure(graphene.Mutation):
 
 class ResidueType(graphene.ObjectType):
 
-    id = graphene.String()
+    identifier = graphene.String()
     name = graphene.String()
 
 
