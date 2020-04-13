@@ -43,9 +43,6 @@ try:
             }
             (job["sites"] if probability > 0.8 else job["rejected"]).append(site)
             
-            '''site = sequence_site_to_gql_object(site, family, probability)
-            (job["sites"] if probability > 0.8 else job["rejected"]).append(site)'''
-        
         # Save job
         save_job(job)
     
