@@ -1,8 +1,11 @@
 #! /usr/bin/env python3
 
 import sys
+import os
 import json
 import joblib
+import atomium
+from itertools import combinations, product
 from utilities import *
 
 # Get arguments from JSON
@@ -15,6 +18,48 @@ arguments = json.loads(sys.argv[1])
 with open(get_job_location(arguments["job_id"])) as f: job = json.load(f)
 
 families = ["H3", "C4", "C2H2"]
+
+try:
+    # Get model
+    model = atomium.open(
+        f"server{os.path.sep}jobs{os.path.sep}{arguments['structure']}"
+    ).model
+
+    for family in families:
+        print(family)
+        # Update status
+        job["status"] = f"Looking for {family} sites"
+        save_job(job)
+
+        # Find possible sites for this family
+        possibles = list(model_to_family_inputs(model, family))
+
+        # Convert possible sites to vectors
+        vectors = [structure_site_to_vector(possible) for possible in possibles]
+
+        # Run vectors through models
+        from random import random
+        from time import sleep
+        sleep(random() * 10)
+        probabilities = [round(random(), 4) for _ in vectors]
+
+        # Add sites to job object
+        for site, probability in zip(possibles, probabilities):
+            l = job["sites"] if probability > 0.8 else job["rejected"]
+            residues = [
+                {"identifier": res.id, "name": res.name} for res in site
+            ]
+            l.append({"family": family, "probability": probability, "residues": residues})
+       
+        # Save job
+        save_job(job)
+    
+    job["status"] = "complete"
+    save_job(job)
+
+except:
+    job["status"] = "error"
+    save_job(job)
 
 """import sys
 import os
