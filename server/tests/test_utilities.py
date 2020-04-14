@@ -9,7 +9,16 @@ class JobInitializationTests(TestCase):
         mock_time.return_value = 300
         self.assertEqual(initialize_job("ABC"), {
             "id": "300000", "status": "initializing", "protein": "ABC",
-            "sites": [], "rejected": []
+            "sites": [], "rejected_sites": []
+        })
+    
+
+    @patch("time.time")
+    def test_can_initialize_job_with_locations(self, mock_time):
+        mock_time.return_value = 300
+        self.assertEqual(initialize_job("ABC", locations=True), {
+            "id": "300000", "status": "initializing", "protein": "ABC",
+            "sites": [], "rejected_sites": [], "locations": [], "rejected_locations": []
         })
 
 
@@ -276,3 +285,22 @@ class StructureFamilyHalfSiteToVectorTests(TestCase):
     def test_can_convert_structure_family_half_site_to_vector(self):
         model = Mock()
         self.assertEqual(structure_family_half_site_to_vector(model), [])
+
+
+
+class ModelLocationTests(TestCase):
+    
+    def test_can_get_model_locations(self):
+        model = Mock()
+        self.assertEqual(get_model_locations(model), [
+            [0, 0, 0], [0, 0, 1], [0, 1, 0], [0, 1, 1],
+            [1, 0, 0], [1, 0, 1], [1, 1, 0], [1, 1, 1]
+        ])
+
+
+
+class StructureLocationToVectorTests(TestCase):
+
+    def test_can_convert_location_to_vector(self):
+        model = Mock()
+        self.assertEqual(structure_location_to_vector([0, 0, 0], model), [])

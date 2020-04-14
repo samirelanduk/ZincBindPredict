@@ -12,16 +12,18 @@ from django.http import JsonResponse
 from data.utilities import model_to_residue_combos, residues_to_sample
 from data.utilities import sequence_to_residue_combos, sequence_to_sample
 
-def initialize_job(protein):
+def initialize_job(protein, locations=False):
     """Creates an empty job dictionary with an ID created from the current
     time."""
 
-    return {
+    job =  {
         "id": str(int(time.time() * 1000)),
-        "status": "initializing",
-        "protein": protein,
-        "sites": [], "rejected": []
+        "status": "initializing","protein": protein,
+        "sites": [], "rejected_sites": [],
     }
+    if locations:
+        job["locations"], job["rejected_locations"] = [], []
+    return job
 
 
 def get_job_location(id):
@@ -166,5 +168,18 @@ def get_structure_half_families():
 
 def structure_family_half_site_to_vector(half_site):
     """Takes a structure family half site object and turns it into a feature vector."""
+
+    return []
+
+
+def get_model_locations(model):
+    """Gets points in space on a model that might reasonably be a centre of
+    zinc binding."""
+
+    return [[x, y, z] for x in range(2) for y in range(2) for z in range(2)]
+
+
+def structure_location_to_vector(site, model):
+    """Takes a point in space and turns it into a feature vector."""
 
     return []

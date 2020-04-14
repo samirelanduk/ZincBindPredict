@@ -41,7 +41,7 @@ try:
                 "family": family,
                 "residues": site
             }
-            (job["sites"] if probability > 0.8 else job["rejected"]).append(site)
+            (job["sites"] if probability > 0.8 else job["rejected_sites"]).append(site)
             
         # Save job
         save_job(job)

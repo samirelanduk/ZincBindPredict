@@ -33,6 +33,13 @@ class StructureSiteType(graphene.ObjectType):
 
 
 
+class StructureLocationType(graphene.ObjectType):
+
+    probability = graphene.Float()
+    location = graphene.List(graphene.Float)
+
+
+
 class AbstractJobType:
 
     id = graphene.String()
@@ -51,28 +58,38 @@ class SequenceJobType(AbstractJobType, graphene.ObjectType):
     
     
     sites = graphene.List(SequenceSiteType)
-    rejected = graphene.List(SequenceSiteType)
+    rejected_sites = graphene.List(SequenceSiteType)
 
     def resolve_sites(self, info, **kwargs):
         return [SequenceSiteType(**site) for site in self.sites]
     
 
-    def resolve_rejected(self, info, **kwargs):
-        return [SequenceSiteType(**site) for site in self.rejected]
+    def resolve_rejected_sites(self, info, **kwargs):
+        return [SequenceSiteType(**site) for site in self.rejected_sites]
 
 
 
 class StructureJobType(AbstractJobType, graphene.ObjectType):
 
     sites = graphene.List(StructureSiteType)
-    rejected = graphene.List(StructureSiteType)
+    rejected_sites = graphene.List(StructureSiteType)
+    locations = graphene.List(StructureLocationType)
+    rejected_locations = graphene.List(StructureLocationType)
 
     def resolve_sites(self, info, **kwargs):
         return [StructureSiteType(**site) for site in self.sites]
     
 
-    def resolve_rejected(self, info, **kwargs):
-        return [StructureSiteType(**site) for site in self.rejected]
+    def resolve_rejected_sites(self, info, **kwargs):
+        return [StructureSiteType(**site) for site in self.rejected_sites]
+    
+
+    def resolve_locations(self, info, **kwargs):
+        return [StructureLocationType(**site) for site in self.locations]
+    
+
+    def resolve_rejected_locations(self, info, **kwargs):
+        return [StructureLocationType(**site) for site in self.rejected_locations]
     
 
 
@@ -123,7 +140,7 @@ class SearchStructure(graphene.Mutation):
     job_id = graphene.String()
 
     def mutate(self, info, **kwargs):
-        job = initialize_job("")
+        job = initialize_job("", locations=True)
         job["protein"] = kwargs["structure"] = save_structure_file(
             kwargs["structure"], job["id"])
         save_job(job)
