@@ -101,7 +101,7 @@ class SearchSequence(graphene.Mutation):
     job_id = graphene.String()
 
     def mutate(self, info, **kwargs):
-        job = initialise_job(kwargs["sequence"])
+        job = initialize_job(kwargs["sequence"])
         save_job(job)
         kwargs["job_id"] = job["id"]
         Popen(["server/sequence_job.py", json.dumps(kwargs)])
@@ -122,7 +122,7 @@ class SearchStructure(graphene.Mutation):
     job_id = graphene.String()
 
     def mutate(self, info, **kwargs):
-        job = initialise_job("")
+        job = initialize_job("")
         job["protein"] = kwargs["structure"] = save_structure_file(
             kwargs["structure"], job["id"])
         save_job(job)

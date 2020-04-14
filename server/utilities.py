@@ -12,13 +12,13 @@ from django.http import JsonResponse
 from data.utilities import model_to_residue_combos, residues_to_sample
 from data.utilities import sequence_to_residue_combos, sequence_to_sample
 
-def initialise_job(protein):
+def initialize_job(protein):
     """Creates an empty job dictionary with an ID created from the current
     time."""
 
     return {
         "id": str(int(time.time() * 1000)),
-        "status": "initialising",
+        "status": "initializing",
         "protein": protein,
         "sites": [], "rejected": []
     }
@@ -42,8 +42,9 @@ def save_structure_file(uploaded_file, job_id):
     """Takes an uploaded file and a job ID, and saves the uploaded locally. The
     new file name will be returned."""
 
-    file_extension = uploaded_file.name.split(".")[-1]
-    file_name = f"{job_id}.{file_extension}"
+    name = uploaded_file.name
+    file_extension = ("." + name.split(".")[-1]) if "." in name else ""
+    file_name = f"{job_id}{file_extension}"
     file_path = f"server{os.path.sep}jobs{os.path.sep}{file_name}"
     with open(file_path, "wb") as f:
         f.write(uploaded_file.read())
@@ -123,14 +124,13 @@ def get_model_for_job(filename):
     """Gets an atomium model from a given filename representing a local
     structure file."""
 
-    print(f"server{os.path.sep}jobs{os.path.sep}{filename}")
     return atomium.open(f"server{os.path.sep}jobs{os.path.sep}{filename}").model
 
 
 def get_structure_families():
     """Get the families for which there are structure models."""
 
-    return ["H3", "C4", "C2H2"][:1]
+    return ["H3", "C4", "C2H2"]
 
 
 def model_to_family_inputs(model, family):
@@ -139,7 +139,6 @@ def model_to_family_inputs(model, family):
 
     family = family.lower()
     subfamilies = split_family(family)
-
     subfamily_combinations = []
     for subfamily in subfamilies:
         residues = model.residues(code=subfamily[0].upper())
@@ -151,37 +150,6 @@ def model_to_family_inputs(model, family):
     ] for site in product(*subfamily_combinations)]
     
     return potential_sites
-    return ["".join(
-        char.upper() if i in site else char for i, char in enumerate(sequence)
-    ) for site in potential_sites]
-
-
-
-    subfamilies = split_family(family)
-    residues = []
-    for subfamily in subfamilies:
-        residues += list(model.residues(code=subfamily[0]))
-    residues = {r: [r] for r in residues}
-
-    for res in residues:
-        for other_res in residues:
-            if res is not other_res and res.atom(name="CA") and\
-             other_res.atom(name="CA") and\
-              res.atom(name="CA").distance_to(other_res.atom(name="CA")) <= 25:
-                residues[res].append(other_res)
-    combos = set()
-    for res in residues:
-        residue_combos = []
-        for subfamily in subfamilies:
-            sub_res = [r for r in residues[res] if r.code == subfamily[0]]
-            residue_combos.append(combinations(sub_res, int(subfamily[1:])))
-        initial_combos = product(*residue_combos)
-        
-        for combo in initial_combos:
-            combo = frozenset([item for sublist in combo for item in sublist])
-            
-            combos.add(combo)
-    return combos
 
     
 def structure_family_site_to_vector(site):
