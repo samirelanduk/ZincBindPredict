@@ -36,12 +36,12 @@ try:
 
         # Add sites to job object
         for site, probability in zip(possibles, probabilities):
+            l = job["sites"] if probability > 0.8 else job["rejected_sites"]
             site = {
-                "probability": probability,
-                "family": family,
-                "residues": site
+                "probability": probability, "family": family, "residues": site
             }
-            (job["sites"] if probability > 0.8 else job["rejected_sites"]).append(site)
+            l.append(site)
+            l.sort(key=lambda s: -s["probability"])
             
         # Save job
         save_job(job)

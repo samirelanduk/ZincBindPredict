@@ -37,15 +37,13 @@ try:
 
         # Add sites to job object
         for site, probability in zip(possibles, probabilities):
+            l = job["sites"] if probability > 0.8 else job["rejected_sites"]
             site = {
-                "probability": probability,
-                "family": family,
-                "half": False,
-                "residues": [{
-                    "name": res.name, "identifier": res.id
-                } for res in site]
+                "probability": probability, "family": family, "half": False,
+                "residues": [{"name": res.name, "identifier": res.id} for res in site]
             }
-            (job["sites"] if probability > 0.8 else job["rejected_sites"]).append(site)
+            l.append(site)
+            l.sort(key=lambda s: -s["probability"])
        
         # Save job
         save_job(job)
@@ -68,15 +66,13 @@ try:
 
         # Add sites to job object
         for site, probability in zip(possibles, probabilities):
+            l = job["sites"] if probability > 0.8 else job["rejected_sites"]
             site = {
-                "probability": probability,
-                "family": half_family,
-                "half": True,
-                "residues": [{
-                    "name": res.name, "identifier": res.id
-                } for res in site]
+                "probability": probability, "family": half_family, "half": True,
+                "residues": [{"name": res.name, "identifier": res.id} for res in site]
             }
-            (job["sites"] if probability > 0.8 else job["rejected_sites"]).append(site)
+            l.append(site)
+            l.sort(key=lambda s: -s["probability"])
         
         # Save job
         save_job(job)
@@ -103,13 +99,12 @@ try:
     for site, probability, half_probability in zip(possibles, probabilities, half_probabilities):
         full = probability > 0.8
         half = not full and half_probability > 0.8
-
+        l = job["locations"] if probability > 0.8 else job["rejected_locations"]
         site = {
-            "probability": probability,
-            "location": site,
-            "half": half
+            "probability": probability, "location": site, "half": half
         }
-        (job["locations"] if half or full else job["rejected_locations"]).append(site)
+        l.append(site)
+        l.sort(key=lambda s: -s["probability"])
 
     
         
