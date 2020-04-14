@@ -40,12 +40,44 @@ try:
             site = {
                 "probability": probability,
                 "family": family,
+                "half": False,
                 "residues": [{
                     "name": res.name, "identifier": res.id
                 } for res in site]
             }
             (job["sites"] if probability > 0.8 else job["rejected"]).append(site)
        
+        # Save job
+        save_job(job)
+    
+    for half_family in get_structure_half_families():
+        # Update status
+        save_job(job, status=f"Looking for {half_family} half-sites")
+
+        # Find possible half sites for this family
+        possibles = list(model_to_family_inputs(model, half_family))
+
+        # Convert possible sites to vectors
+        vectors = [structure_family_half_site_to_vector(possible) for possible in possibles]
+
+        # Run vectors through models
+        from random import random
+        from time import sleep
+        sleep(random() * 5)
+        probabilities = [round(random(), 4) for _ in vectors]
+
+        # Add sites to job object
+        for site, probability in zip(possibles, probabilities):
+            site = {
+                "probability": probability,
+                "family": half_family,
+                "half": True,
+                "residues": [{
+                    "name": res.name, "identifier": res.id
+                } for res in site]
+            }
+            (job["sites"] if probability > 0.8 else job["rejected"]).append(site)
+        
         # Save job
         save_job(job)
     

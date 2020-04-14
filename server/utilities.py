@@ -156,3 +156,15 @@ def structure_family_site_to_vector(site):
     """Takes a structure family site object and turns it into a feature vector."""
 
     return []
+
+
+def get_structure_half_families():
+    """Get the families for which there are structure half-site models."""
+
+    return ["H2", "C2"]
+
+
+def structure_family_half_site_to_vector(half_site):
+    """Takes a structure family half site object and turns it into a feature vector."""
+
+    return []

@@ -25,6 +25,7 @@ class StructureSiteType(graphene.ObjectType):
 
     probability = graphene.Float()
     family = graphene.String()
+    half = graphene.Boolean()
     residues = graphene.List(ResidueType)
 
     def resolve_residues(self, info, **kwargs):

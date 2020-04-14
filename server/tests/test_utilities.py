@@ -261,3 +261,18 @@ class StructureFamilySiteToVectorTests(TestCase):
     def test_can_convert_structure_family_site_to_vector(self):
         model = Mock()
         self.assertEqual(structure_family_site_to_vector(model), [])
+
+
+
+class StructureHalfFamiliesTests(TestCase):
+
+    def test_can_get_available_structure_half_amilies(self):
+        self.assertEqual(get_structure_half_families(), ["H2", "C2"])
+
+
+
+class StructureFamilyHalfSiteToVectorTests(TestCase):
+
+    def test_can_convert_structure_family_half_site_to_vector(self):
+        model = Mock()
+        self.assertEqual(structure_family_half_site_to_vector(model), [])
