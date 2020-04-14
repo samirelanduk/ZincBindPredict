@@ -37,6 +37,7 @@ class StructureLocationType(graphene.ObjectType):
 
     probability = graphene.Float()
     location = graphene.List(graphene.Float)
+    half = graphene.Boolean()
 
 
 

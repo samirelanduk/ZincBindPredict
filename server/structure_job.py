@@ -27,7 +27,7 @@ try:
         possibles = list(model_to_family_inputs(model, family))
 
         # Convert possible sites to vectors
-        vectors = [structure_family_site_to_vector(possible, model) for possible in possibles]
+        vectors = [structure_family_site_to_vector(possible) for possible in possibles]
 
         # Run vectors through models
         from random import random
@@ -88,21 +88,28 @@ try:
     possibles = list(get_model_locations(model))
 
     # Convert possible sites to vectors
-    vectors = [structure_location_to_vector(possible) for possible in possibles]
+    vectors = [structure_location_to_vector(possible, model) for possible in possibles]
+    half_vectors = [structure_location_to_half_vector(possible, model) for possible in possibles]
 
     # Run vectors through model
     from random import random
     from time import sleep
     sleep(random() * 5)
     probabilities = [round(random(), 4) for _ in vectors]
+    sleep(random() * 5)
+    half_probabilities = [round(random(), 4) for _ in half_vectors]
 
     # Add sites to job object
-    for site, probability in zip(possibles, probabilities):
+    for site, probability, half_probability in zip(possibles, probabilities, half_probabilities):
+        full = probability > 0.8
+        half = not full and half_probability > 0.8
+
         site = {
             "probability": probability,
-            "location": site
+            "location": site,
+            "half": half
         }
-        (job["locations"] if probability > 0.8 else job["rejected_locations"]).append(site)
+        (job["locations"] if half or full else job["rejected_locations"]).append(site)
 
     
         

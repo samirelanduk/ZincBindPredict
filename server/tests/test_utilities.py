@@ -304,3 +304,11 @@ class StructureLocationToVectorTests(TestCase):
     def test_can_convert_location_to_vector(self):
         model = Mock()
         self.assertEqual(structure_location_to_vector([0, 0, 0], model), [])
+
+
+
+class StructureLocationToHalfVectorTests(TestCase):
+
+    def test_can_convert_location_to_half_vector(self):
+        model = Mock()
+        self.assertEqual(structure_location_to_half_vector([0, 0, 0], model), [])

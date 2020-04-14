@@ -183,3 +183,9 @@ def structure_location_to_vector(site, model):
     """Takes a point in space and turns it into a feature vector."""
 
     return []
+
+
+def structure_location_to_half_vector(site, model):
+    """Takes a point in space and turns it into a half-site feature vector."""
+
+    return []
