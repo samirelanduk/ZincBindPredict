@@ -106,9 +106,6 @@ try:
         l.append(site)
         l.sort(key=lambda s: -s["probability"])
 
-    
-        
-
     # Finish job
     save_job(job, status="complete")
 
