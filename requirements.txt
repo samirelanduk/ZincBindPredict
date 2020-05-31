@@ -4,6 +4,7 @@ graphene_django
 kirjava
 tqdm
 graphene-file-upload
+django_cors_headers
 
 numpy
 pandas

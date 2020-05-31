@@ -20,6 +20,7 @@ ROOT_URLCONF = "server.urls"
 INSTALLED_APPS = [
  "django.contrib.staticfiles",
  "graphene_django",
+ "corsheaders",
  "server"
 ]
 
@@ -29,6 +30,7 @@ TIME_ZONE = "UTC"
 
 MIDDLEWARE = [
  "django.middleware.common.CommonMiddleware",
+ "corsheaders.middleware.CorsMiddleware",
 ]
 
 STATIC_URL = "/static/"
@@ -49,3 +51,5 @@ JOB_EXPIRATION = 10
 GRAPHENE = {
  "SCHEMA": "server.schema.schema"
 }
+
+CORS_ORIGIN_ALLOW_ALL = True
