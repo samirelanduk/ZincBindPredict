@@ -57,12 +57,17 @@ class AbstractJobType:
 
 class SequenceJobType(AbstractJobType, graphene.ObjectType):
     
-    
+    protein = graphene.String()
     sites = graphene.List(SequenceSiteType)
     rejected_sites = graphene.List(SequenceSiteType)
+    rejected_count = graphene.Int()
 
     def resolve_sites(self, info, **kwargs):
         return [SequenceSiteType(**site) for site in self.sites]
+
+
+    def resolve_rejected_count(self, info, **kwargs):
+        return len(self.rejected_sites)
     
 
     def resolve_rejected_sites(self, info, **kwargs):
@@ -76,9 +81,15 @@ class StructureJobType(AbstractJobType, graphene.ObjectType):
     rejected_sites = graphene.List(StructureSiteType)
     locations = graphene.List(StructureLocationType)
     rejected_locations = graphene.List(StructureLocationType)
+    rejected_count = graphene.Int()
+    rejected_location_count = graphene.Int()
 
     def resolve_sites(self, info, **kwargs):
         return [StructureSiteType(**site) for site in self.sites]
+    
+
+    def resolve_rejected_count(self, info, **kwargs):
+        return len(self.rejected_sites)
     
 
     def resolve_rejected_sites(self, info, **kwargs):
@@ -87,6 +98,10 @@ class StructureJobType(AbstractJobType, graphene.ObjectType):
 
     def resolve_locations(self, info, **kwargs):
         return [StructureLocationType(**site) for site in self.locations]
+    
+
+    def resolve_rejected_location_count(self, info, **kwargs):
+        return len(self.rejected_locations)
     
 
     def resolve_rejected_locations(self, info, **kwargs):
@@ -115,7 +130,6 @@ class SearchSequence(graphene.Mutation):
     class Arguments:
         sequence = graphene.String(required=True)
         families = graphene.List(graphene.String, description="Site families to limit to")
-        probability = graphene.Float(description="Probability threshold")
     
     job_id = graphene.String()
 
@@ -133,7 +147,6 @@ class SearchStructure(graphene.Mutation):
     class Arguments:
         structure = Upload(required=True)
         families = graphene.List(graphene.String, description="Site families to limit to")
-        probability = graphene.Float(description="Probability threshold")
         find_half = graphene.Boolean(description="Look for half sites instead")
         use_families_models = graphene.Boolean(description="Use family based models")
         use_location_models = graphene.Boolean(description="Use location based models")
@@ -142,8 +155,8 @@ class SearchStructure(graphene.Mutation):
 
     def mutate(self, info, **kwargs):
         job = initialize_job("", locations=True)
-        job["protein"] = kwargs["structure"] = save_structure_file(
-            kwargs["structure"], job["id"])
+        job["protein"] = kwargs["structure"].name
+        kwargs["structure"] = save_structure_file(kwargs["structure"], job["id"])
         save_job(job)
         kwargs["job_id"] = job["id"]
         Popen(["server/structure_job.py", json.dumps(kwargs)])
