@@ -1,7 +1,3 @@
-from atomium import Residue, Atom, Chain
-import pandas as pd
-import numpy as np
-from io import StringIO
 from unittest import TestCase
 from unittest.mock import patch, Mock, MagicMock
 from data.utilities import *
@@ -24,6 +20,104 @@ class DataFetchingTests(TestCase):
          {"id": "123", "subObjects": [{"id": "1"}, {"id": "2"}]},
          {"id": "1234", "subObjects": [{"id": "29"}]}
         ])
+
+
+
+class CsvSavingTests(TestCase):
+
+    @patch("builtins.open")
+    def test_can_save_samples_to_csv(self, mock_open):
+        open_return = MagicMock()
+        mock_file = Mock()
+        mock_write = MagicMock()
+        mock_file.write = mock_write
+        open_return.__enter__.return_value = mock_file
+        mock_open.return_value = open_return
+        positives = [{"a": 1, "b": 2}, {"a": 3, "b": 4}]
+        negatives = [{"a": 5, "b": 6}, {"a": 7, "b": 8}]
+        save_csv(positives, negatives, "XXX", "abc")
+        mock_open.assert_called_with("abc/XXX.csv", "w")
+        mock_write.assert_called_with("a,b,positive\n1,2,1\n3,4,1\n5,6,0\n7,8,0")
+        save_csv(positives, [], "XXX", "abc")
+        mock_open.assert_called_with("abc/XXX.csv", "w")
+        mock_write.assert_called_with("a,b,positive\n1,2,1\n3,4,1")
+        save_csv([], negatives, "XXX", "abc")
+        mock_open.assert_called_with("abc/XXX.csv", "w")
+        mock_write.assert_called_with("a,b,positive\n5,6,0\n7,8,0")
+    
+
+    def test_can_handle_no_samples(self):
+        save_csv([], [], "XXX", "")
+
+
+
+class RandomSequenceSiteTests(TestCase):
+
+    @patch("data.utilities.split_family")
+    def test_can_get_random_sequence_when_one_available(self, mock_split):
+        sequence = "nnnnnnxnnnnnxnn"
+        mock_split.return_value = [["X", 2]]
+        sequence = random_sequence_family_input(sequence, "X2")
+        self.assertEqual(sequence, "nnnnnnXnnnnnXnn")
+    
+
+    @patch("data.utilities.split_family")
+    def test_can_get_random_sequence_when_multiple_available(self, mock_split):
+        sequence = "nnnnnnxnnnnnxnnxnnnn"
+        mock_split.return_value = [["X", 2]]
+        for _ in range(100):
+            sequence = random_sequence_family_input(sequence, "X2")
+            self.assertIn(sequence, [
+                "nnnnnnXnnnnnXnnxnnnn", "nnnnnnXnnnnnxnnXnnnn", "nnnnnnxnnnnnXnnXnnnn"
+            ])
+    
+
+    @patch("data.utilities.split_family")
+    def test_can_get_random_compound_sequence_when_one_available(self, mock_split):
+        sequence = "nnnnnnxnnnnnxnnynnynnnyn"
+        mock_split.return_value = [["X", 2], ["Y", 3]]
+        sequence = random_sequence_family_input(sequence, "X2Y3")
+        self.assertEqual(sequence, "nnnnnnXnnnnnXnnYnnYnnnYn")
+    
+
+    @patch("data.utilities.split_family")
+    def test_can_get_random_compound_sequence_when_multiple_available(self, mock_split):
+        sequence = "nxnnxnnnxnnynnynnnyny"
+        mock_split.return_value = [["X", 2], ["Y", 3]]
+        for _ in range(400):
+            sequence = random_sequence_family_input(sequence, "X2Y3")
+            self.assertIn(sequence, [
+                "nXnnXnnnxnnYnnYnnnYny", "nXnnxnnnXnnYnnYnnnYny", "nxnnXnnnXnnYnnYnnnYny",
+                "nXnnXnnnxnnYnnYnnnynY", "nXnnxnnnXnnYnnYnnnynY", "nxnnXnnnXnnYnnYnnnynY",
+                "nXnnXnnnxnnYnnynnnYnY", "nXnnxnnnXnnYnnynnnYnY", "nxnnXnnnXnnYnnynnnYnY",
+                "nXnnXnnnxnnynnYnnnYnY", "nXnnxnnnXnnynnYnnnYnY", "nxnnXnnnXnnynnYnnnYnY",
+            ])
+    
+
+    @patch("data.utilities.split_family")
+    def test_can_get_no_sequence_when_none_available(self, mock_split):
+        sequence = "nnnnnnxnnnnnnnn"
+        mock_split.return_value = [["X", 2]]
+        self.assertIsNone(random_sequence_family_input(sequence, "X2"))
+        mock_split.return_value = [["X", 1]]
+        self.assertIsNotNone(random_sequence_family_input(sequence, "X1"))
+    
+
+    @patch("data.utilities.split_family")
+    def test_can_get_no_compound_sequence_when_none_available(self, mock_split):
+        sequence = "nxnnxnnnxnnynnynnn"
+        mock_split.return_value = [["X", 2], ["Y", 3]]
+        self.assertIsNone(random_sequence_family_input(sequence, "X2Y3"))
+
+
+
+
+
+
+
+
+
+"""
 
 
 
@@ -412,6 +506,6 @@ class DatasetSplittingTests(TestCase):
         self.assertEqual(unlabelled.shape, (3, 3))
         self.assertEqual(positives.shape, (2, 3))
         self.assertEqual(negatives.shape, (1, 3))
-        self.assertEqual(core.shape, (3, 2))
+        self.assertEqual(core.shape, (3, 2))"""
 
 

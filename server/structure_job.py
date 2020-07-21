@@ -101,9 +101,15 @@ try:
 
         # Add sites to job object
         for site, probability, half_probability in zip(possibles, probabilities, half_probabilities):
-            full = probability > 0.8
-            half = not full and half_probability > 0.8
-            l = job["locations"] if probability > 0.8 else job["rejected_locations"]
+            # Is this location a full binding site?
+            full = probability > 0.95
+
+            # Is it a half binding site?
+            half = not full and half_probability > 0.95
+            
+            # If it's either, add it to the list of possible sites
+            l = job["locations"] if full or half else job["rejected_locations"]
+
             site = {
                 "probability": probability, "location": site, "half": half
             }

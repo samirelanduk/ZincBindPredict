@@ -176,7 +176,7 @@ def get_model_locations(model):
     """Gets points in space on a model that might reasonably be a centre of
     zinc binding."""
 
-    return [[x, y, z] for x in range(2) for y in range(2) for z in range(2)]
+    return model.create_grid()
 
 
 def structure_location_to_vector(site, model):

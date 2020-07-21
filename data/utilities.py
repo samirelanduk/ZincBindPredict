@@ -1,11 +1,9 @@
-import math
+"""Utility functions used in the generation of datasets."""
+
 import random
 import os
-import atomium
-from itertools import combinations, product
-from functools import reduce
-import numpy as np
 import kirjava
+from common import split_family
 
 def fetch_data(url, query, variables):
     """Gets data from the ZincBindDB API and formats it to remove all the edges
@@ -19,6 +17,53 @@ def fetch_data(url, query, variables):
     data = kirjava.execute(url, query, variables=variables)["data"]
     strip_dict(data)
     return list(data.values())[0]
+
+
+def save_csv(positives, negatives, name, path):
+    """Takes a list of positive samples and a list of negative samples, and
+    saves them to CSV."""
+
+    if not positives and not negatives: return
+    lines = [",".join((positives + negatives)[0].keys()) + ",positive"]
+    for index, samples in enumerate([positives, negatives]):
+        for sample in samples:
+            lines.append(",".join([str(v) for v in sample.values()] + [str(1 - index)]))
+    with open(f"{path}{os.path.sep}{name}.csv", "w") as f:
+        f.write("\n".join(lines))
+
+
+def random_sequence_family_input(sequence, family):
+    """Takes a sequence string and gets a random binding site for a given
+    family. If there is no matching site, returns None."""
+
+    indices = []
+    for subfamily in split_family(family):
+        code, count = subfamily[0].lower(), subfamily[1]
+        subfamily_indices = [index for index, char in
+            enumerate(sequence.lower()) if char == code]
+        if len(subfamily_indices) < count: return None
+        indices += random.sample(subfamily_indices, count)
+    return "".join([char.upper() if index in indices else char.lower()
+        for index, char in enumerate(sequence)])
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 def update_data_file(family, kind, samples=None):
@@ -137,18 +182,6 @@ def count_model_combinations(model, family):
     return int(count)
 
 
-def split_family(family):
-    """Takes a family such as 'C3H1' and splits it into subfamilies such as 'C3'
-    and 'H1'."""
-
-    subfamilies, subfamily = [], ""
-    for char in family:
-        if char.isalpha() and subfamily:
-            subfamilies.append(subfamily)
-            subfamily = ""
-        subfamily += char
-    subfamilies.append(subfamily)
-    return subfamilies
 
 
 def split_dataset(df):

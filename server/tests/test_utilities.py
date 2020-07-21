@@ -118,17 +118,6 @@ class JobLoadingTests(TestCase):
 
 
 
-class FamilySplittingTests(TestCase):
-
-    def test_can_split_single_residue_family(self):
-        self.assertEqual(split_family("H3"), [["H", 3]])
-
-
-    def test_can_split_multi_residue_family(self):
-        self.assertEqual(split_family("H3C10"), [["H", 3], ["C", 10]])
-
-
-
 class SequenceFamiliesTests(TestCase):
 
     def test_can_get_available_sequence_families(self):
