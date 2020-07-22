@@ -24,7 +24,7 @@ unique_sequences = [cluster["chains"][0]["sequence"] for cluster in clusters]
 print(f"Using {len(unique_sequences)} unique sequences for negative samples")
 
 # What families should be used?
-with open("data/families.dat") as f: families = f.read().splitlines()[:1]
+with open("data/families.dat") as f: families = f.read().splitlines()
 
 for family in families:
     # Download all binding sites for this family
