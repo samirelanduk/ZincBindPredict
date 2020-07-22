@@ -3,7 +3,7 @@
 import random
 import os
 import kirjava
-from common import split_family
+from common import split_family, structure_family_site_to_vector
 
 def fetch_data(url, query, variables):
     """Gets data from the ZincBindDB API and formats it to remove all the edges
@@ -47,6 +47,54 @@ def random_sequence_family_input(sequence, family):
         for index, char in enumerate(sequence)])
 
 
+def get_residues_from_model(model, residues):
+    """Takes a model, and some residues in JSON form, and then finds the
+    matching residues in the model.
+    
+    It will throw an exception if it encounters any problems."""
+
+    at_residues = []
+    for res in residues:
+        possibles = model.residues(id=res["atomiumId"])
+        matching = [r for r in possibles if r.atom(name="CA").location == (
+            res["atoms"][0]["x"], res["atoms"][0]["y"], res["atoms"][0]["z"]
+        )]
+        at_residues.append(matching[0])
+    return at_residues
+
+
+def create_negative_samples_for_model(model, family, positives):
+    """Takes a model, and generates a number of residue combinations for a given
+    family, excluding those flagges as positive."""
+
+    negative_samples = []
+    iter_count = 0
+    while len(negative_samples) < len(positives) * 10:
+        random_combination = random_structure_family_input(model, family)
+        if not random_combination: break
+        if set(random_combination) not in positives:
+            vector = structure_family_site_to_vector(random_combination)
+            if vector:
+                negative_samples.append(vector)
+        iter_count += 1
+        if iter_count > 100 * len(positives): break
+    return negative_samples
+
+
+def random_structure_family_input(model, family):
+    """Takes an atomium model and generates a random combination of residues
+    matching a family, or None if that is impossible."""
+    
+    residues = []
+    for subfamily in split_family(family):
+        code, count = subfamily[0].upper(), subfamily[1]
+        matching_residues = list(model.residues(code=code))
+        if len(matching_residues) < count: return None
+        residues += random.sample(matching_residues, count)
+    return residues
+    
+
+
 
 
 
@@ -81,20 +129,7 @@ def update_data_file(family, kind, samples=None):
         with open(path, "w") as f: f.write("")
 
 
-def get_residues_from_model(model, residues):
-    """Takes a model, and some residues in JSON form, and then finds the
-    matching residues in the model.
-    
-    It will throw an exception if it encounters any problems."""
 
-    at_residues = []
-    for res in residues:
-        possibles = model.residues(id=res["atomiumId"])
-        matching = [r for r in possibles if r.atom(name="CA").location == (
-         res["atoms"][0]["x"], res["atoms"][0]["y"], res["atoms"][0]["z"]
-        )]
-        at_residues.append(matching[0])
-    return at_residues
 
 
 def residues_to_sample(residues, site_id):

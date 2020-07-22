@@ -111,6 +111,113 @@ class RandomSequenceSiteTests(TestCase):
 
 
 
+class ResiduesFromModelTests(TestCase):
+
+    def setUp(self):
+        self.model = Mock()
+        self.residues = [
+            {"atomiumId": 1, "atoms": [{"x": 1, "y": 2, "z": 3}]},
+            {"atomiumId": 2, "atoms": [{"x": 4, "y": 5, "z": 6}]},
+        ]
+        self.res1, self.res2, self.res3 = Mock(), Mock(), Mock()
+        self.res1.atom.return_value = Mock(location=(1, 2, 3))
+        self.res2.atom.return_value = Mock(location=(7, 8, 9))
+        self.res3.atom.return_value = Mock(location=(4, 5, 6))
+        self.model.residues.side_effect = [
+         [self.res1], [self.res2, self.res3]
+        ]
+
+
+    def test_can_get_residues(self):
+        residues = get_residues_from_model(self.model, self.residues)
+        self.assertEqual(residues, [self.res1, self.res3])
+
+
+
+class NegativeSampleGenerationTests(TestCase):
+
+    @patch("data.utilities.random_structure_family_input")
+    @patch("data.utilities.structure_family_site_to_vector")
+    def test_can_get_negative_samples_without_problems(self, mock_vector, mock_random):
+        mock_random.side_effect = [[n] for n in range(1, 21)]
+        mock_vector.side_effect = range(1, 21)
+        model = Mock()
+        positives = [Mock(), Mock()]
+        negatives = create_negative_samples_for_model(model, "H3", positives)
+        self.assertEqual(negatives, list(range(1, 21)))
+        mock_random.assert_called_with(model, "H3")
+        self.assertEqual(mock_random.call_count, 20)
+        self.assertEqual(mock_vector.call_count, 20)
+        for n in range(1, 21):
+            mock_vector.assert_any_call([n])
+    
+
+    @patch("data.utilities.random_structure_family_input")
+    @patch("data.utilities.structure_family_site_to_vector")
+    def test_can_abandon_search_for_negative_samples(self, mock_vector, mock_random):
+        mock_random.return_value = None
+        model = Mock()
+        positives = [Mock(), Mock()]
+        negatives = create_negative_samples_for_model(model, "H3", positives)
+        self.assertEqual(negatives, [])
+    
+
+    @patch("data.utilities.random_structure_family_input")
+    @patch("data.utilities.structure_family_site_to_vector")
+    def test_can_get_reject_sites_in_positives(self, mock_vector, mock_random):
+        mock_random.side_effect = [[n] for n in range(1, 22)]
+        mock_vector.side_effect = range(1, 22)
+        model = Mock()
+        positives = [set([2]), set([100])]
+        negatives = create_negative_samples_for_model(model, "H3", positives)
+        self.assertEqual(negatives, list(range(1, 21)))
+        mock_random.assert_called_with(model, "H3")
+        self.assertEqual(mock_random.call_count, 21)
+        self.assertEqual(mock_vector.call_count, 20)
+        for n in range(1, 22):
+            if n != 2:
+                mock_vector.assert_any_call([n])
+    
+
+    @patch("data.utilities.random_structure_family_input")
+    @patch("data.utilities.structure_family_site_to_vector")
+    def test_can_get_stop_looking_eventually(self, mock_vector, mock_random):
+        mock_random.return_value = [1]
+        mock_vector.return_value = None
+        model = Mock()
+        positives = [set([2]), set([100])]
+        negatives = create_negative_samples_for_model(model, "H3", positives)
+        self.assertEqual(negatives, [])
+
+
+
+class RandomStructureSiteTests(TestCase):
+
+    @patch("data.utilities.split_family")
+    def test_can_get_random_site_when_available(self, mock_split):
+        model = Mock()
+        model.residues.side_effect = [[1, 2, 3], [4, 5]] * 100
+        mock_split.return_value = [["X", 2], ["Y", 1]]
+        for n in range(100):
+            site = random_structure_family_input(model, "X2Y3")
+            self.assertIn(set(site), [
+                {1, 2, 4}, {1, 3, 4}, {2, 3, 4}, {1, 2, 5}, {1, 3, 5}, {2, 3, 5}
+            ])
+
+
+    @patch("data.utilities.split_family")
+    def test_can_get_random_site_when_available(self, mock_split):
+        model = Mock()
+        model.residues.side_effect = [[1], [4, 5]]
+        mock_split.return_value = [["X", 2], ["Y", 1]]
+        site = random_structure_family_input(model, "X2Y3")
+        self.assertIsNone(site)
+
+
+
+
+
+
 
 
 
@@ -166,26 +273,7 @@ class DataFileUpdatingTests(TestCase):
 
 
 
-class ResiduesFromModelTests(TestCase):
 
-    def setUp(self):
-        self.model = Mock()
-        self.residues = [
-         {"atomiumId": 1, "atoms": [{"x": 1, "y": 2, "z": 3}]},
-         {"atomiumId": 2, "atoms": [{"x": 4, "y": 5, "z": 6}]},
-        ]
-        self.res1, self.res2, self.res3 = Mock(), Mock(), Mock()
-        self.res1.atom.return_value = Mock(location=(1, 2, 3))
-        self.res2.atom.return_value = Mock(location=(7, 8, 9))
-        self.res3.atom.return_value = Mock(location=(4, 5, 6))
-        self.model.residues.side_effect = [
-         [self.res1], [self.res2, self.res3]
-        ]
-
-
-    def test_can_get_residues(self):
-        residues = get_residues_from_model(self.model, self.residues)
-        self.assertEqual(residues, [self.res1, self.res3])
 
 
 
