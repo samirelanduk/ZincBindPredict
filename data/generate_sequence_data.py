@@ -1,5 +1,6 @@
 #! /usr/bin/env python3
 
+import sys
 import kirjava
 import random
 from tqdm import tqdm
@@ -25,6 +26,11 @@ print(f"Using {len(unique_sequences)} unique sequences for negative samples")
 
 # What families should be used?
 with open("data/families.dat") as f: families = f.read().splitlines()
+for arg in sys.argv:
+    if arg.startswith("--limit="):
+        families = [f for f in families if f in arg[8:].split(",")]
+    if arg.startswith("--exclude="):
+        families = [f for f in families if f not in arg[10:].split(",")]
 
 for family in families:
     # Download all binding sites for this family
