@@ -3,7 +3,8 @@
 import random
 import os
 import kirjava
-from common import split_family, structure_family_site_to_vector
+from collections import Counter
+from .common import split_family, structure_family_site_to_vector
 
 def fetch_data(url, query, variables):
     """Gets data from the ZincBindDB API and formats it to remove all the edges
@@ -13,6 +14,8 @@ def fetch_data(url, query, variables):
         for key, value in d.items():
             if isinstance(value, dict) and "edges" in value:
                 d[key] = [strip_dict(e["node"]) for e in value["edges"]]
+            elif isinstance(value, dict):
+                d[key] = strip_dict(d[key])
         return d
     data = kirjava.execute(url, query, variables=variables)["data"]
     strip_dict(data)
@@ -92,6 +95,14 @@ def random_structure_family_input(model, family):
         if len(matching_residues) < count: return None
         residues += random.sample(matching_residues, count)
     return residues
+
+
+def chars_to_family(chars):
+    """Takes a list of characters and constructs a family from them. So, A1B2
+    would be created from ['B', 'A', 'B'] for example."""
+    
+    counter = Counter(chars)
+    return "".join(sorted([char + str(n) for char, n in counter.items()]))
     
 
 

@@ -215,10 +215,14 @@ class RandomStructureSiteTests(TestCase):
 
 
 
+class CharsToFamilyTests(TestCase):
 
-
-
-
+    def test_can_get_family(self):
+        self.assertEqual(chars_to_family(["A"]), "A1")
+        self.assertEqual(chars_to_family(["A", "A"]), "A2")
+        self.assertEqual(chars_to_family(["A", "B"]), "A1B1")
+        self.assertEqual(chars_to_family(["B", "A"]), "A1B1")
+        self.assertEqual(chars_to_family(["B", "A", "A", "D", "C", "C", "A"]), "A3B1C2D1")
 
 
 

@@ -91,3 +91,43 @@ class StructureSiteToVectorTests(TestCase):
         self.assertAlmostEqual(sample["cb_min"], 1.414, delta=0.005)
         self.assertEqual(sample["helix"], 2)
         self.assertEqual(sample["strand"], 1)
+
+
+
+class StructureHalfSiteToVectorTests(TestCase):
+
+    def setUp(self):
+        self.res1 = Residue(
+         Atom("C", 0, -2, 0, 1, "CA", 0, 0, []), Atom("C", 0, -1, 0, 1, "CB", 0, 0, [])
+        )
+        self.res2 = Residue(
+         Atom("C", 0, 2, 0, 1, "CA", 0, 0, []), Atom("C", 0, 1, 0, 1, "CB", 0, 0, [])
+        )
+        self.res3 = Residue(
+         Atom("C", -2, 0, 0, 1, "CA", 0, 0, []), Atom("C", -1, 0, 0, 1, "CB", 0, 0, [])
+        )
+        self.res4 = Residue(
+         Atom("C", 2, 0, 0, 1, "CA", 0, 0, []), Atom("C", 1, 0, 0, 1, "CB", 0, 0, [])
+        )
+        Chain(
+         self.res1, self.res2, self.res3, self.res4,
+         helices=[[self.res2, self.res3]], strands=[[self.res4]]
+        )
+        
+
+    def test_can_get_half_vector_dict(self):
+        sample = structure_half_family_site_to_vector((self.res1, self.res2, self.res3, self.res4))
+        self.assertEqual(sample.keys(), {
+         "ca_mean", "ca_std", "ca_max", "ca_min", "cb_mean", "cb_std",
+         "cb_max", "cb_min", "helix", "strand"
+        })
+        self.assertAlmostEqual(sample["ca_mean"], 3.218, delta=0.005)
+        self.assertAlmostEqual(sample["ca_std"], 0.552, delta=0.005)
+        self.assertEqual(sample["ca_max"], 4)
+        self.assertAlmostEqual(sample["ca_min"], 2.828, delta=0.005)
+        self.assertAlmostEqual(sample["cb_mean"], 1.609, delta=0.005)
+        self.assertAlmostEqual(sample["cb_std"], 0.276, delta=0.005)
+        self.assertEqual(sample["cb_max"], 2)
+        self.assertAlmostEqual(sample["cb_min"], 1.414, delta=0.005)
+        self.assertEqual(sample["helix"], 2)
+        self.assertEqual(sample["strand"], 1)
