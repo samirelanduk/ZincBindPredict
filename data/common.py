@@ -3,6 +3,7 @@ server."""
 
 import random
 from itertools import combinations
+import math
 import numpy as np
 
 def sequence_site_to_vector(sequence):
@@ -98,3 +99,43 @@ def structure_half_family_site_to_vector(residues):
         sample["strand"] = len([r for r in residues if r.strand])
         return sample
     except Exception as e: return None
+
+
+def model_to_grid(model):
+    """Takes a model and returns a grid of values around the electronegative
+    atoms."""
+
+    grid = set()
+    for residue in model.residues():
+        for atom in residue.atoms(element__regex="N|O|S"):
+            location = tuple(round(n) for n in atom.location)
+            for n in range(3):
+                for modifier in [-3, 3]:
+                    altered_location = list(location)
+                    altered_location[n] += modifier
+                    grid.add(tuple(altered_location))
+    return tuple(grid)
+
+
+def location_to_vector(point, model):
+    """Converts a location in space within a model into a dict of values ready
+    to be classified by the models."""
+    
+    vector = {}
+    nearby_atoms = model.atoms_in_sphere(point, 8, element__ne="ZN")
+    vector["8_atom_count"] = count = len(nearby_atoms)
+    vector["8_ched_ratio"] = round(len([
+        a for a in nearby_atoms if a.element in "SNO"
+    ]) / count, 2) if count else 0
+    vector["center_offset"] = round(math.sqrt(
+        (((sum(a.location[0] for a in nearby_atoms) / count) - point[0]) ** 2) +
+        (((sum(a.location[1] for a in nearby_atoms) / count) - point[1]) ** 2) +
+        (((sum(a.location[2] for a in nearby_atoms) / count) - point[2]) ** 2)
+    ), 2) if count else 0
+    distant_atoms = model.atoms_in_sphere(point, 16, element__ne="ZN")
+    vector["16_atom_count"] = count = len(distant_atoms)
+    vector["16_ched_ratio"] = round(len([
+        a for a in distant_atoms if a.element in "SNO"
+    ]) / count, 2) if count else 0
+    return vector
+

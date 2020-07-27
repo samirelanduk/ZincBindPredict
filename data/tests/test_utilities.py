@@ -26,7 +26,8 @@ class DataFetchingTests(TestCase):
 class CsvSavingTests(TestCase):
 
     @patch("builtins.open")
-    def test_can_save_samples_to_csv(self, mock_open):
+    @patch("os.path.exists")
+    def test_can_save_samples_to_csv(self, mock_exists, mock_open):
         open_return = MagicMock()
         mock_file = Mock()
         mock_write = MagicMock()
@@ -35,15 +36,39 @@ class CsvSavingTests(TestCase):
         mock_open.return_value = open_return
         positives = [{"a": 1, "b": 2}, {"a": 3, "b": 4}]
         negatives = [{"a": 5, "b": 6}, {"a": 7, "b": 8}]
+        mock_exists.return_value = False
         save_csv(positives, negatives, "XXX", "abc")
-        mock_open.assert_called_with("abc/XXX.csv", "w")
-        mock_write.assert_called_with("a,b,positive\n1,2,1\n3,4,1\n5,6,0\n7,8,0")
+        mock_open.assert_called_with("abc/XXX.csv", "a+")
+        mock_write.assert_called_with("a,b,positive\n1,2,1\n3,4,1\n5,6,0\n7,8,0\n")
         save_csv(positives, [], "XXX", "abc")
-        mock_open.assert_called_with("abc/XXX.csv", "w")
-        mock_write.assert_called_with("a,b,positive\n1,2,1\n3,4,1")
+        mock_open.assert_called_with("abc/XXX.csv", "a+")
+        mock_write.assert_called_with("a,b,positive\n1,2,1\n3,4,1\n")
         save_csv([], negatives, "XXX", "abc")
-        mock_open.assert_called_with("abc/XXX.csv", "w")
-        mock_write.assert_called_with("a,b,positive\n5,6,0\n7,8,0")
+        mock_open.assert_called_with("abc/XXX.csv", "a+")
+        mock_write.assert_called_with("a,b,positive\n5,6,0\n7,8,0\n")
+    
+
+    @patch("builtins.open")
+    @patch("os.path.exists")
+    def test_can_save_samples_to_csv_file_exists(self, mock_exists, mock_open):
+        open_return = MagicMock()
+        mock_file = Mock()
+        mock_write = MagicMock()
+        mock_file.write = mock_write
+        open_return.__enter__.return_value = mock_file
+        mock_open.return_value = open_return
+        positives = [{"a": 1, "b": 2}, {"a": 3, "b": 4}]
+        negatives = [{"a": 5, "b": 6}, {"a": 7, "b": 8}]
+        mock_exists.return_value = True
+        save_csv(positives, negatives, "XXX", "abc")
+        mock_open.assert_called_with("abc/XXX.csv", "a+")
+        mock_write.assert_called_with("1,2,1\n3,4,1\n5,6,0\n7,8,0\n")
+        save_csv(positives, [], "XXX", "abc")
+        mock_open.assert_called_with("abc/XXX.csv", "a+")
+        mock_write.assert_called_with("1,2,1\n3,4,1\n")
+        save_csv([], negatives, "XXX", "abc")
+        mock_open.assert_called_with("abc/XXX.csv", "a+")
+        mock_write.assert_called_with("5,6,0\n7,8,0\n")
     
 
     def test_can_handle_no_samples(self):

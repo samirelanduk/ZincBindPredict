@@ -4,7 +4,7 @@ import random
 import os
 import kirjava
 from collections import Counter
-from .common import split_family, structure_family_site_to_vector
+from data.common import split_family, structure_family_site_to_vector
 
 def fetch_data(url, query, variables):
     """Gets data from the ZincBindDB API and formats it to remove all the edges
@@ -27,12 +27,18 @@ def save_csv(positives, negatives, name, path):
     saves them to CSV."""
 
     if not positives and not negatives: return
-    lines = [",".join((positives + negatives)[0].keys()) + ",positive"]
+
+    path = f"{path}{os.path.sep}{name}.csv"
+    lines = []
+    flag = "a+"
+    if not os.path.exists(path):
+        lines.append(",".join((positives + negatives)[0].keys()) + ",positive")
+        #flag = "w"
     for index, samples in enumerate([positives, negatives]):
         for sample in samples:
             lines.append(",".join([str(v) for v in sample.values()] + [str(1 - index)]))
-    with open(f"{path}{os.path.sep}{name}.csv", "w") as f:
-        f.write("\n".join(lines))
+    with open(path, flag) as f:
+        f.write("\n".join(lines) + "\n")
 
 
 def random_sequence_family_input(sequence, family):
@@ -100,7 +106,7 @@ def random_structure_family_input(model, family):
 def chars_to_family(chars):
     """Takes a list of characters and constructs a family from them. So, A1B2
     would be created from ['B', 'A', 'B'] for example."""
-    
+
     counter = Counter(chars)
     return "".join(sorted([char + str(n) for char, n in counter.items()]))
     
