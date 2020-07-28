@@ -183,3 +183,54 @@ class LocationToVectorTests(TestCase):
             "8_atom_count": 0, "8_ched_ratio": 0, "center_offset": 0,
             "16_atom_count": 0, "16_ched_ratio": 0
         })
+
+
+
+class HalfLocationToVectorTests(TestCase):
+
+    def test_can_get_half_location_vector(self):
+        atom1 = Atom("C", 1.1, 1.2, 1.3, "C", 0, 0, 0, 0)
+        atom2 = Atom("N", 1.4, 1.5, 1.6, "N", 0, 0, 0, 0)
+        atom3 = Atom("O", 1.3, 1.7, 1.8, "O", 0, 0, 0, 0)
+        atom4 = Atom("C", 10.1, 2.2, 1.5, "C", 0, 0, 0, 0)
+        atom5 = Atom("C", 2.1, 12.2, 1.3, "C", 0, 0, 0, 0)
+        atom6 = Atom("S", 1.1, 3.6, 1.3, "S", 0, 0, 0, 0)
+        atom7 = Atom("O", 5.1, 1.2, 1.3, "O", 0, 0, 0, 0)
+        atom8 = Atom("ZN", 6.1, 1.2, 1.3, "O", 0, 0, 0, 0)
+        atom11 = Atom("C", 1.1, 1.2, 1.3, "C", 0, 0, 0, 0)
+        atom12 = Atom("N", 1.4, 1.5, 1.6, "N", 0, 0, 0, 0)
+        atom13 = Atom("O", 1.3, 1.7, 1.8, "O", 0, 0, 0, 0)
+        atom14 = Atom("C", 10.1, 2.2, 1.5, "C", 0, 0, 0, 0)
+        atom15 = Atom("C", 2.1, 12.2, 1.3, "C", 0, 0, 0, 0)
+        atom16 = Atom("S", 1.1, 3.6, 1.3, "S", 0, 0, 0, 0)
+        res1 = Residue(atom1, atom2, atom3)
+        res2 = Residue(atom4, atom5, atom6)
+        res11 = Residue(atom11, atom12, atom13)
+        res12 = Residue(atom14, atom15, atom16)
+        lig = Ligand(atom7, atom8)
+        model = Model(Chain(res1, res2, id="A"), Chain(res11, res12, id="B"), lig)
+        self.assertEqual(half_location_to_vector((0, 0, 0), "A", model), {
+            "8_atom_count": 5, "8_ched_ratio": 0.8, "center_offset": 3.08,
+            "16_atom_count": 7, "16_ched_ratio": 0.57
+        })
+    
+
+    def test_can_get_half_location_vector_no_atoms(self):
+        model = Model()
+        self.assertEqual(half_location_to_vector((0, 0, 0), "A", model), {
+            "8_atom_count": 0, "8_ched_ratio": 0, "center_offset": 0,
+            "16_atom_count": 0, "16_ched_ratio": 0
+        })
+        atom1 = Atom("C", 1.1, 1.2, 1.3, "C", 0, 0, 0, 0)
+        atom2 = Atom("N", 1.4, 1.5, 1.6, "N", 0, 0, 0, 0)
+        atom3 = Atom("O", 1.3, 1.7, 1.8, "O", 0, 0, 0, 0)
+        atom4 = Atom("C", 10.1, 2.2, 1.5, "C", 0, 0, 0, 0)
+        atom5 = Atom("C", 2.1, 12.2, 1.3, "C", 0, 0, 0, 0)
+        atom6 = Atom("S", 1.1, 3.6, 1.3, "S", 0, 0, 0, 0)
+        res1 = Residue(atom1, atom2, atom3)
+        res2 = Residue(atom4, atom5, atom6)
+        model = Model(Chain(res1, res2, id="A"))
+        self.assertEqual(half_location_to_vector((0, 0, 0), "B", model), {
+            "8_atom_count": 0, "8_ched_ratio": 0, "center_offset": 0,
+            "16_atom_count": 0, "16_ched_ratio": 0
+        })

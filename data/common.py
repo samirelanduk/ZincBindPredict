@@ -139,3 +139,31 @@ def location_to_vector(point, model):
     ]) / count, 2) if count else 0
     return vector
 
+
+def half_location_to_vector(point, chain, model):
+    """Converts a location in space within a model into a dict of values ready
+    to be classified by the models - only the chain specified will be examined
+    for surrounding atoms."""
+    
+    vector = {}
+    nearby_atoms = model.atoms_in_sphere(
+        point, 8, element__ne="ZN", chain__id=chain
+    )
+    vector["8_atom_count"] = count = len(nearby_atoms)
+    vector["8_ched_ratio"] = round(len([
+        a for a in nearby_atoms if a.element in "SNO"
+    ]) / count, 2) if count else 0
+    vector["center_offset"] = round(math.sqrt(
+        (((sum(a.location[0] for a in nearby_atoms) / count) - point[0]) ** 2) +
+        (((sum(a.location[1] for a in nearby_atoms) / count) - point[1]) ** 2) +
+        (((sum(a.location[2] for a in nearby_atoms) / count) - point[2]) ** 2)
+    ), 2) if count else 0
+    distant_atoms = model.atoms_in_sphere(
+        point, 16, element__ne="ZN", chain__id=chain
+    )
+    vector["16_atom_count"] = count = len(distant_atoms)
+    vector["16_ched_ratio"] = round(len([
+        a for a in distant_atoms if a.element in "SNO"
+    ]) / count, 2) if count else 0
+    return vector
+
