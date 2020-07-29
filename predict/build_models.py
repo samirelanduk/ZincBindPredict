@@ -1,33 +1,69 @@
 #! /usr/bin/env python3
 
-import os
+import warnings
+warnings.warn = lambda *args, **kwargs: None
 import sys
+sys.path.append("../zincbindpredict")
+import pandas as pd
+import joblib
+from collections import Counter
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import recall_score, precision_score
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.svm import SVC
+from predict.utilities import *
 
-categories = {c: {} for c in os.listdir(
-    os.path.join("data", "csv")
-) if "." not in c}
-for category in categories:
-    categories[category] = {d[:-4]: {} for d in os.listdir(
-        os.path.join("data", "csv", category)
-    ) if d.endswith("csv")}
+# What categories and datasets should be used?
+categories = get_categories_from_arguments_and_filesystem(sys.argv)
 
-for arg in sys.argv:
-    if arg.startswith("--categories="):
-        allowed_categories = arg[13:].split(",")
-        categories = {
-            k: v for k, v in categories.items() if k in allowed_categories
-        }
-    if arg.startswith("--datasets="):
-        for category in categories:
-            allowed_datasets = arg[11:].split(",")
-            categories[category] = {k: v for k, v in
-             categories[category].items() if k in allowed_datasets}
-
-
+# Go through each category...
 for category in categories:
     print(category)
-    for d in categories[category]:
-        print(" ", d)
+
+    # ...and each dataset in each category
+    for dataset in categories[category]:
+        print(" ", dataset)
+        df = pd.read_csv(os.path.join("data", "csv", category, f"{dataset}.csv"))
+        data = df.values
+        X, y = data[:, :-1], data[:, -1]
+        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=23)
+
+        print("    KNN", end=" ")
+        model = KNeighborsClassifier()
+        model.fit(X_train, y_train)
+        joblib.dump(model, os.path.join("predict", "models", category, f"{dataset}-KNN.joblib"))
+        knn_y_pred = model.predict(X_test)
+        test_recall = recall_score(y_test, knn_y_pred)
+        test_precision = precision_score(y_test, knn_y_pred)
+        print(round(test_recall, 2), round(test_precision, 2))
+
+        print("    RF", end=" ")
+        model = RandomForestClassifier(n_estimators=100)
+        model.fit(X_train, y_train)
+        joblib.dump(model, os.path.join("predict", "models", category, f"{dataset}-RF.joblib"))
+        rf_y_pred = model.predict(X_test)
+        test_recall = recall_score(y_test, rf_y_pred)
+        test_precision = precision_score(y_test, rf_y_pred)
+        print(round(test_recall, 2), round(test_precision, 2))
+
+        print("    SVM", end=" ")
+        model = SVC(gamma="scale")
+        model.fit(X_train, y_train)
+        joblib.dump(model, os.path.join("predict", "models", category, f"{dataset}-SVM.joblib"))
+        svm_y_pred = model.predict(X_test)
+        test_recall = recall_score(y_test, svm_y_pred)
+        test_precision = precision_score(y_test, svm_y_pred)
+        print(round(test_recall, 2), round(test_precision, 2))
+
+        print("    Ensemble", end=" ")
+        predictions = [knn_y_pred, rf_y_pred, svm_y_pred]
+        y_pred = [Counter(l).most_common(1)[0][0] for l in zip(*predictions)]
+        test_recall = recall_score(y_test, y_pred)
+        test_precision = precision_score(y_test, y_pred)
+        print(round(test_recall, 2), round(test_precision, 2))
+
+
 
 
 

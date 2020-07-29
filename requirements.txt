@@ -5,6 +5,7 @@ kirjava
 tqdm
 graphene-file-upload
 django_cors_headers
+joblib
 
 numpy
 pandas
