@@ -1,6 +1,37 @@
 #! /usr/bin/env python3
 
+import os
 import sys
+
+categories = {c: {} for c in os.listdir(
+    os.path.join("data", "csv")
+) if "." not in c}
+for category in categories:
+    categories[category] = {d[:-4]: {} for d in os.listdir(
+        os.path.join("data", "csv", category)
+    ) if d.endswith("csv")}
+
+for arg in sys.argv:
+    if arg.startswith("--categories="):
+        allowed_categories = arg[13:].split(",")
+        categories = {
+            k: v for k, v in categories.items() if k in allowed_categories
+        }
+    if arg.startswith("--datasets="):
+        for category in categories:
+            allowed_datasets = arg[11:].split(",")
+            categories[category] = {k: v for k, v in
+             categories[category].items() if k in allowed_datasets}
+
+
+for category in categories:
+    print(category)
+    for d in categories[category]:
+        print(" ", d)
+
+
+
+'''import sys
 import os
 import json
 import pandas as pd
@@ -167,4 +198,4 @@ for category in results:
             print("     ", model)
             for metric in results[category][family][model]:
                 if metric != "hyperparameters":
-                    print(f"        {metric}: {round(results[category][family][model][metric], 3)}")
+                    print(f"        {metric}: {round(results[category][family][model][metric], 3)}")'''
