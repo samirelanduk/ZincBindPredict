@@ -1,6 +1,7 @@
 #! /usr/bin/env python3
 
 import sys
+sys.path.append("../zincbindpredict")
 import kirjava
 import random
 from tqdm import tqdm
@@ -36,6 +37,7 @@ for family in families:
     # Download all binding sites for this family
     print(f"Fetching {family} data...")
     family_sites = fetch_data(API_URL, FAMILY_CHAINS_QUERY, {"family": family})
+    res_count = sum([int(c) for c in family if c.isdigit()])
     
     # Get one sequence for each site, and only use sites on one chain
     family_sequences = [
@@ -51,8 +53,9 @@ for family in families:
         # Get positive samples for them
         positive_samples = []
         for sequence in family_sequences:
-            positive_samples.append(sequence_site_to_vector(sequence))
-            pbar.update()
+            if len([c for c in sequence if c.isupper()]) == res_count:
+                positive_samples.append(sequence_site_to_vector(sequence))
+                pbar.update()
 
         # Get negative samples for this family - 10 per positive sample
         negative_samples = []
