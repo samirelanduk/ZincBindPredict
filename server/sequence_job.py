@@ -7,6 +7,7 @@ import json
 import joblib
 import traceback
 from itertools import combinations, product
+from collections import Counter
 from utilities import *
 from data.common import sequence_site_to_vector
 
@@ -38,12 +39,24 @@ def main():
                 vectors = [v for v in vectors if len(v) == max_length]
 
                 # Run vectors through models
-                model = joblib.load(f"predict/models/sequence/{family}-RF.joblib")
-                probabilities = model.predict(vectors)
+                knn_model = joblib.load(f"predict/models/sequence/{family}-KNN.joblib")
+                knn_predicted = knn_model.predict(vectors)
+                knn_probabilities = [p[1] for p in knn_model.predict_proba(vectors)]
+
+                rf_model = joblib.load(f"predict/models/sequence/{family}-RF.joblib")
+                rf_predicted = rf_model.predict(vectors)
+                rf_probabilities = [p[1] for p in rf_model.predict_proba(vectors)]
+
+                svm_model = joblib.load(f"predict/models/sequence/{family}-SVM.joblib")
+                svm_predicted = svm_model.predict(vectors)
+                svm_probabilities = [p[1] for p in svm_model.predict_proba(vectors)]
+
+                predicted = [Counter(votes).most_common()[0][0] for votes in zip(knn_predicted, rf_predicted, svm_predicted)]
+                probabilities = [sum(votes) / 3 for votes in zip(knn_probabilities, rf_probabilities, svm_probabilities)]
 
                 # Add sites to job object
-                for site, probability in zip(possibles, probabilities):
-                    l = job["sites"] if probability > 0.99 else job["rejected_sites"]
+                for site, positive, probability in zip(possibles, predicted, probabilities):
+                    l = job["sites"] if positive else job["rejected_sites"]
                     site = {
                         "probability": probability, "family": family, "residues": site
                     }

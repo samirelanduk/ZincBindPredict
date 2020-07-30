@@ -48,7 +48,7 @@ for category in categories:
         print(round(test_recall, 2), round(test_precision, 2))
 
         print("    SVM", end=" ")
-        model = SVC(gamma="scale")
+        model = SVC(gamma="scale", probability=True)
         model.fit(X_train, y_train)
         joblib.dump(model, os.path.join("predict", "models", category, f"{dataset}-SVM.joblib"))
         svm_y_pred = model.predict(X_test)
