@@ -73,17 +73,29 @@ try:
             possibles = list(model_to_family_inputs(model, half_family))
 
             # Convert possible sites to vectors
-            vectors = [structure_family_half_site_to_vector(possible) for possible in possibles]
+            dicts = [structure_family_site_to_vector(possible) for possible in possibles]
+            vectors = [list(d.values()) for d in dicts]
+            if not vectors: continue
 
             # Run vectors through models
-            from random import random
-            from time import sleep
-            sleep(random() * 5)
-            probabilities = [round(random(), 4) for _ in vectors]
+            knn_model = joblib.load(f"predict/models/structure-half-families/{half_family}-KNN.joblib")
+            knn_predicted = knn_model.predict(vectors)
+            knn_probabilities = [p[1] for p in knn_model.predict_proba(vectors)]
+
+            rf_model = joblib.load(f"predict/models/structure-half-families/{half_family}-RF.joblib")
+            rf_predicted = rf_model.predict(vectors)
+            rf_probabilities = [p[1] for p in rf_model.predict_proba(vectors)]
+
+            svm_model = joblib.load(f"predict/models/structure-half-families/{half_family}-SVM.joblib")
+            svm_predicted = svm_model.predict(vectors)
+            svm_probabilities = [p[1] for p in svm_model.predict_proba(vectors)]
+
+            predicted = [Counter(votes).most_common()[0][0] for votes in zip(knn_predicted, rf_predicted, svm_predicted)]
+            probabilities = [sum(votes) / 3 for votes in zip(knn_probabilities, rf_probabilities, svm_probabilities)]
 
             # Add sites to job object
-            for site, probability in zip(possibles, probabilities):
-                l = job["sites"] if probability > 0.8 else job["rejected_sites"]
+            for site, positive, probability in zip(possibles, predicted, probabilities):
+                l = job["sites"] if positive else job["rejected_sites"]
                 site = {
                     "probability": probability, "family": half_family, "half": True,
                     "residues": [{"name": res.name, "identifier": res.id} for res in site]

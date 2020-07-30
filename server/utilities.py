@@ -132,7 +132,10 @@ def get_model_for_job(filename):
 def get_structure_families():
     """Get the families for which there are structure models."""
 
-    return ["H3", "C4", "C2H2"]
+    models = [f for f in os.listdir(
+        os.path.join("predict", "models", "structure-families")
+    ) if f.endswith(".joblib")]
+    return sorted(set([model.split("-")[0] for model in models]))
 
 
 def model_to_family_inputs(model, family):
@@ -163,7 +166,10 @@ def structure_family_site_to_vector(site):
 def get_structure_half_families():
     """Get the families for which there are structure half-site models."""
 
-    return ["H2", "C2"]
+    models = [f for f in os.listdir(
+        os.path.join("predict", "models", "structure-half-families")
+    ) if f.endswith(".joblib")]
+    return sorted(set([model.split("-")[0] for model in models]))
 
 
 def structure_family_half_site_to_vector(half_site):
