@@ -8,6 +8,7 @@ import joblib
 import traceback
 from itertools import combinations, product
 from utilities import *
+from data.common import sequence_site_to_vector
 
 from random import random
 from time import sleep
@@ -30,11 +31,15 @@ def main():
                 possibles = list(sequence_to_family_inputs(sequence, family))
 
                 # Convert possible sites to vectors
-                vectors = [sequence_site_to_vector(possible) for possible in possibles]
+                dicts = [sequence_site_to_vector(possible) for possible in possibles]
+                vectors = [list(d.values()) for d in dicts]
+                if not vectors: continue
+                max_length = max(len(v) for v in vectors)
+                vectors = [v for v in vectors if len(v) == max_length]
 
                 # Run vectors through models
-                sleep(5)
-                probabilities = [round(random(), 4) for _ in vectors]
+                model = joblib.load(f"predict/models/sequence/{family}-RF.joblib")
+                probabilities = model.predict(vectors)
 
                 # Add sites to job object
                 for site, probability in zip(possibles, probabilities):
