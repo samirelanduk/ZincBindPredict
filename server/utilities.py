@@ -126,7 +126,9 @@ def get_model_for_job(filename):
     """Gets an atomium model from a given filename representing a local
     structure file."""
 
-    return atomium.open(f"server{os.path.sep}jobs{os.path.sep}{filename}").model
+    model =  atomium.open(f"server{os.path.sep}jobs{os.path.sep}{filename}").model
+    model.optimise_distances()
+    return model
 
 
 def get_structure_families():

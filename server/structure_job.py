@@ -8,7 +8,7 @@ import atomium
 from itertools import combinations, product
 from collections import Counter
 from utilities import *
-from data.common import structure_family_site_to_vector
+from data.common import *
 
 # Get arguments from JSON
 arguments = parse_arguments()
@@ -20,7 +20,6 @@ job = load_job(job_id)
 try:
     # Get model
     model = get_model_for_job(filename)
-
 
     for family in get_structure_families():
         if arguments["use_families_models"] and (not arguments["find_half"]) and (family in arguments["families"] or arguments["families"] == []):
@@ -73,7 +72,7 @@ try:
             possibles = list(model_to_family_inputs(model, half_family))
 
             # Convert possible sites to vectors
-            dicts = [structure_family_site_to_vector(possible) for possible in possibles]
+            dicts = [structure_half_family_site_to_vector(possible) for possible in possibles]
             vectors = [list(d.values()) for d in dicts]
             if not vectors: continue
 
@@ -111,33 +110,35 @@ try:
         save_job(job, status=f"Looking at locations in structure")
 
         # Get possible centres of zinc binding
-        possibles = list(get_model_locations(model))
+        locations = model_to_grid(model)
 
-        # Convert possible sites to vectors
-        vectors = [structure_location_to_vector(possible, model) for possible in possibles]
-        half_vectors = [structure_location_to_half_vector(possible, model) for possible in possibles]
+        # Convert possible locations to vectors
+        vector_func = half_location_to_vector if arguments["find_half"] else location_to_vector
+        dicts = [vector_func(location, model) for location in locations]
+        vectors = [list(d.values()) for d in dicts]
 
-        # Run vectors through model
-        from random import random
-        from time import sleep
-        sleep(random() * 5)
-        probabilities = [round(random(), 4) for _ in vectors]
-        sleep(random() * 5)
-        half_probabilities = [round(random(), 4) for _ in half_vectors]
+        # Run vectors through models
+        dataset = "half" if arguments["find_half"] else "full"
+        knn_model = joblib.load(f"predict/models/locations/{dataset}-KNN.joblib")
+        knn_predicted = knn_model.predict(vectors)
+        knn_probabilities = [p[1] for p in knn_model.predict_proba(vectors)]
+
+        rf_model = joblib.load(f"predict/models/locations/{dataset}-RF.joblib")
+        rf_predicted = rf_model.predict(vectors)
+        rf_probabilities = [p[1] for p in rf_model.predict_proba(vectors)]
+
+        svm_model = joblib.load(f"predict/models/locations/{dataset}-SVM.joblib")
+        svm_predicted = svm_model.predict(vectors)
+        svm_probabilities = [p[1] for p in svm_model.predict_proba(vectors)]
+
+        predicted = [Counter(votes).most_common()[0][0] for votes in zip(knn_predicted, rf_predicted, svm_predicted)]
+        probabilities = [sum(votes) / 3 for votes in zip(knn_probabilities, rf_probabilities, svm_probabilities)]
 
         # Add sites to job object
-        for site, probability, half_probability in zip(possibles, probabilities, half_probabilities):
-            # Is this location a full binding site?
-            full = probability > 0.95
-
-            # Is it a half binding site?
-            half = not full and half_probability > 0.95
-            
-            # If it's either, add it to the list of possible sites
-            l = job["locations"] if full or half else job["rejected_locations"]
-
+        for site, positive, probability in zip(locations, predicted, probabilities):
+            l = job["locations"] if positive else job["rejected_sites"]
             site = {
-                "probability": probability, "location": site, "half": half
+                "probability": probability, "location": site, "half": arguments["find_half"]
             }
             l.append(site)
             l.sort(key=lambda s: -s["probability"])
