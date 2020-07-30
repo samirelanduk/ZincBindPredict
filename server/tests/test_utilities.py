@@ -118,10 +118,10 @@ class JobLoadingTests(TestCase):
 
 
 
-class SequenceFamiliesTests(TestCase):
+'''class SequenceFamiliesTests(TestCase):
 
     def test_can_get_available_sequence_families(self):
-        self.assertEqual(get_sequence_families(), ["H3", "C4", "C2H2"])
+        self.assertEqual(get_sequence_families(), ["H3", "C4", "C2H2"])'''
 
 
 
@@ -174,13 +174,6 @@ class SequenceToFamilyInputTests(TestCase):
 
 
 
-class SequenceSiteToVectorTests(TestCase):
-
-    def test_can_convert_sequence_to_vector(self):
-        self.assertEqual(sequence_site_to_vector("aaBcc"), [])
-
-
-
 class JobModelLoadingTests(TestCase):
 
     @patch("atomium.open")
@@ -192,11 +185,11 @@ class JobModelLoadingTests(TestCase):
 
 
 
-class StructureFamiliesTests(TestCase):
+'''class StructureFamiliesTests(TestCase):
 
     def test_can_get_available_structure_families(self):
         self.assertEqual(get_structure_families(), ["H3", "C4", "C2H2"])
-
+'''
 
 
 class ModelToFamilyInputsTests(TestCase):
@@ -251,53 +244,3 @@ class ModelToFamilyInputsTests(TestCase):
         model.residues.side_effect = [[1, 2], [10, 20]]
         inputs = model_to_family_inputs(model, "X2Y3")
         self.assertEqual(inputs, [])
-
-
-
-class StructureFamilySiteToVectorTests(TestCase):
-
-    def test_can_convert_structure_family_site_to_vector(self):
-        model = Mock()
-        self.assertEqual(structure_family_site_to_vector(model), [])
-
-
-
-class StructureHalfFamiliesTests(TestCase):
-
-    def test_can_get_available_structure_half_amilies(self):
-        self.assertEqual(get_structure_half_families(), ["H2", "C2"])
-
-
-
-class StructureFamilyHalfSiteToVectorTests(TestCase):
-
-    def test_can_convert_structure_family_half_site_to_vector(self):
-        model = Mock()
-        self.assertEqual(structure_family_half_site_to_vector(model), [])
-
-
-
-class ModelLocationTests(TestCase):
-    
-    def test_can_get_model_locations(self):
-        model = Mock()
-        self.assertEqual(get_model_locations(model), [
-            [0, 0, 0], [0, 0, 1], [0, 1, 0], [0, 1, 1],
-            [1, 0, 0], [1, 0, 1], [1, 1, 0], [1, 1, 1]
-        ])
-
-
-
-class StructureLocationToVectorTests(TestCase):
-
-    def test_can_convert_location_to_vector(self):
-        model = Mock()
-        self.assertEqual(structure_location_to_vector([0, 0, 0], model), [])
-
-
-
-class StructureLocationToHalfVectorTests(TestCase):
-
-    def test_can_convert_location_to_half_vector(self):
-        model = Mock()
-        self.assertEqual(structure_location_to_half_vector([0, 0, 0], model), [])

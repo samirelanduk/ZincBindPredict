@@ -9,8 +9,7 @@ import atomium
 import os
 import json
 from django.http import JsonResponse
-from data.utilities import model_to_residue_combos, residues_to_sample
-from data.utilities import sequence_to_residue_combos, sequence_to_sample
+from data.common import split_family
 
 def initialize_job(protein, locations=False):
     """Creates an empty job dictionary with an ID created from the current
@@ -53,8 +52,6 @@ def save_structure_file(uploaded_file, job_id):
     return file_name
 
 
-
-
 def parse_arguments():
     """Gets the JSON arguments passed in at the command line."""
 
@@ -71,26 +68,13 @@ def load_job(id):
         return json.load(f)
 
 
-def split_family(family):
-    """Takes a family such as 'C3H1' and splits it into subfamilies such as 'C3'
-    and 'H1'."""
-
-    subfamilies, subfamily = [], ""
-    for char in family:
-        if char.isalpha() and subfamily:
-            subfamilies.append([subfamily[0], int(subfamily[1:])])
-            subfamily = ""
-        subfamily += char
-    subfamilies.append([subfamily[0], int(subfamily[1:])])
-    return subfamilies
-
-
-
-
 def get_sequence_families():
     """Get the families for which there are sequence models."""
 
-    return ["H3", "C4", "C2H2"]
+    models = [f for f in os.listdir(
+        os.path.join("predict", "models", "sequence")
+    ) if f.endswith(".joblib")]
+    return sorted(set([model.split("-")[0] for model in models]))
 
 
 def sequence_to_family_inputs(sequence, family):
@@ -112,14 +96,6 @@ def sequence_to_family_inputs(sequence, family):
     return ["".join(
         char.upper() if i in site else char for i, char in enumerate(sequence)
     ) for site in potential_sites]
-
-
-def sequence_site_to_vector(site):
-    """Takes a sequence site object and turns it into a feature vector."""
-
-    return []
-
-
 
 
 def get_model_for_job(filename):
@@ -158,12 +134,6 @@ def model_to_family_inputs(model, family):
     
     return potential_sites
 
-    
-def structure_family_site_to_vector(site):
-    """Takes a structure family site object and turns it into a feature vector."""
-
-    return []
-
 
 def get_structure_half_families():
     """Get the families for which there are structure half-site models."""
@@ -172,28 +142,3 @@ def get_structure_half_families():
         os.path.join("predict", "models", "structure-half-families")
     ) if f.endswith(".joblib")]
     return sorted(set([model.split("-")[0] for model in models]))
-
-
-def structure_family_half_site_to_vector(half_site):
-    """Takes a structure family half site object and turns it into a feature vector."""
-
-    return []
-
-
-def get_model_locations(model):
-    """Gets points in space on a model that might reasonably be a centre of
-    zinc binding."""
-
-    return model.create_grid()
-
-
-def structure_location_to_vector(site, model):
-    """Takes a point in space and turns it into a feature vector."""
-
-    return []
-
-
-def structure_location_to_half_vector(site, model):
-    """Takes a point in space and turns it into a half-site feature vector."""
-
-    return []
