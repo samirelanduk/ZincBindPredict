@@ -9,6 +9,8 @@ import joblib
 from collections import Counter
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import recall_score, precision_score
+from sklearn.preprocessing import StandardScaler
+from sklearn.pipeline import Pipeline
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.svm import SVC
@@ -30,7 +32,7 @@ for category in categories:
         X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=23)
 
         print("    KNN", end=" ")
-        model = KNeighborsClassifier()
+        model = Pipeline([("scaler", StandardScaler()), ("KNN", KNeighborsClassifier())])
         model.fit(X_train, y_train)
         joblib.dump(model, os.path.join("predict", "models", category, f"{dataset}-KNN.joblib"))
         knn_y_pred = model.predict(X_test)
@@ -39,7 +41,7 @@ for category in categories:
         print(round(test_recall, 2), round(test_precision, 2))
 
         print("    RF", end=" ")
-        model = RandomForestClassifier(n_estimators=100)
+        model = Pipeline([("scaler", StandardScaler()), ("RF", RandomForestClassifier(n_estimators=100))])
         model.fit(X_train, y_train)
         joblib.dump(model, os.path.join("predict", "models", category, f"{dataset}-RF.joblib"))
         rf_y_pred = model.predict(X_test)
@@ -48,7 +50,7 @@ for category in categories:
         print(round(test_recall, 2), round(test_precision, 2))
 
         print("    SVM", end=" ")
-        model = SVC(gamma="scale", probability=True)
+        model = Pipeline([("scaler", StandardScaler()), ("SVM", SVC(gamma="scale", probability=True))])
         model.fit(X_train, y_train)
         joblib.dump(model, os.path.join("predict", "models", category, f"{dataset}-SVM.joblib"))
         svm_y_pred = model.predict(X_test)
