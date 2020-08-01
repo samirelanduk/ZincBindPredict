@@ -7,7 +7,7 @@ sys.path.append("../zincbindpredict")
 import pandas as pd
 import joblib
 from collections import Counter
-from sklearn.model_selection import train_test_split
+from sklearn.model_selection import train_test_split, GridSearchCV
 from sklearn.metrics import recall_score, precision_score
 from sklearn.preprocessing import StandardScaler
 from sklearn.pipeline import Pipeline
@@ -18,6 +18,25 @@ from predict.utilities import *
 
 # What categories and datasets should be used?
 categories = get_categories_from_arguments_and_filesystem(sys.argv)
+
+def train_model(Model, grid, X, y):
+    scaler = StandardScaler()
+    scaler.fit(X)
+    X_scaled = scaler.transform(X)
+    grid_search = GridSearchCV(Model(), grid, cv=5, scoring="f1")
+    grid_search.fit(X_scaled, y)
+    hyperparams = {}
+    for grid_run in grid:
+        for hyperparam in grid_run:
+            hyperparams[hyperparam] = grid_search.get_params()[f"estimator__{hyperparam}"]
+    model = Pipeline([("scaler", scaler), ("Model", Model(**hyperparams))])
+    if Model is SVC:
+        model.fit(X, y, probability=True) 
+    else:
+        model.fit(X, y) 
+    return model
+
+
 
 # Go through each category...
 for category in categories:
@@ -32,8 +51,7 @@ for category in categories:
         X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=23)
 
         print("    KNN", end=" ")
-        model = Pipeline([("scaler", StandardScaler()), ("KNN", KNeighborsClassifier())])
-        model.fit(X_train, y_train)
+        model = train_model(KNeighborsClassifier, [{"n_neighbors": [1, 3, 5]}], X_train, y_train)
         joblib.dump(model, os.path.join("predict", "models", category, f"{dataset}-KNN.joblib"))
         knn_y_pred = model.predict(X_test)
         test_recall = recall_score(y_test, knn_y_pred)
@@ -41,8 +59,9 @@ for category in categories:
         print(round(test_recall, 2), round(test_precision, 2))
 
         print("    RF", end=" ")
-        model = Pipeline([("scaler", StandardScaler()), ("RF", RandomForestClassifier(n_estimators=100))])
-        model.fit(X_train, y_train)
+        model = train_model(RandomForestClassifier, [{
+            "n_estimators": [10, 100, 1000], "max_depth": [10, 50, 100, None]
+        }], X_train, y_train)
         joblib.dump(model, os.path.join("predict", "models", category, f"{dataset}-RF.joblib"))
         rf_y_pred = model.predict(X_test)
         test_recall = recall_score(y_test, rf_y_pred)
@@ -50,8 +69,10 @@ for category in categories:
         print(round(test_recall, 2), round(test_precision, 2))
 
         print("    SVM", end=" ")
-        model = Pipeline([("scaler", StandardScaler()), ("SVM", SVC(gamma="scale", probability=True))])
-        model.fit(X_train, y_train)
+        model = train_model(SVC, [
+            {"C": [1, 10, 100, 1000], "kernel": ["linear"]},
+            {"C": [1, 10, 100, 1000], "gamma": [0.001, 0.0001], "kernel": ["rbf"]},
+        ], X_train, y_train)
         joblib.dump(model, os.path.join("predict", "models", category, f"{dataset}-SVM.joblib"))
         svm_y_pred = model.predict(X_test)
         test_recall = recall_score(y_test, svm_y_pred)
