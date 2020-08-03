@@ -29,11 +29,9 @@ def train_model(Model, grid, X, y):
     for grid_run in grid:
         for hyperparam in grid_run:
             hyperparams[hyperparam] = grid_search.get_params()[f"estimator__{hyperparam}"]
+    if Model is SVC: hyperparams["probability"] = True
     model = Pipeline([("scaler", scaler), ("Model", Model(**hyperparams))])
-    if Model is SVC:
-        model.fit(X, y, probability=True) 
-    else:
-        model.fit(X, y) 
+    model.fit(X, y)
     return model
 
 
