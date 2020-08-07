@@ -8,7 +8,7 @@ import pandas as pd
 import joblib
 from collections import Counter
 from sklearn.model_selection import train_test_split, GridSearchCV
-from sklearn.metrics import recall_score, precision_score
+from sklearn.metrics import recall_score, precision_score, f1_score, matthews_corrcoef
 from sklearn.preprocessing import StandardScaler
 from sklearn.pipeline import Pipeline
 from sklearn.neighbors import KNeighborsClassifier
@@ -54,7 +54,9 @@ for category in categories:
         knn_y_pred = model.predict(X_test)
         test_recall = recall_score(y_test, knn_y_pred)
         test_precision = precision_score(y_test, knn_y_pred)
-        print(round(test_recall, 2), round(test_precision, 2))
+        test_f1 = f1_score(y_test, knn_y_pred)
+        test_matt = matthews_corrcoef(y_test, knn_y_pred)
+        print(round(test_recall, 2), round(test_precision, 2), round(test_f1, 2), round(test_matt, 2))
 
         print("    RF", end=" ")
         model = train_model(RandomForestClassifier, [{
@@ -64,7 +66,9 @@ for category in categories:
         rf_y_pred = model.predict(X_test)
         test_recall = recall_score(y_test, rf_y_pred)
         test_precision = precision_score(y_test, rf_y_pred)
-        print(round(test_recall, 2), round(test_precision, 2))
+        test_f1 = f1_score(y_test, knn_y_pred)
+        test_matt = matthews_corrcoef(y_test, knn_y_pred)
+        print(round(test_recall, 2), round(test_precision, 2), round(test_f1, 2), round(test_matt, 2))
 
         print("    SVM", end=" ")
         model = train_model(SVC, [
@@ -75,14 +79,18 @@ for category in categories:
         svm_y_pred = model.predict(X_test)
         test_recall = recall_score(y_test, svm_y_pred)
         test_precision = precision_score(y_test, svm_y_pred)
-        print(round(test_recall, 2), round(test_precision, 2))
+        test_f1 = f1_score(y_test, knn_y_pred)
+        test_matt = matthews_corrcoef(y_test, knn_y_pred)
+        print(round(test_recall, 2), round(test_precision, 2), round(test_f1, 2), round(test_matt, 2))
 
         print("    Ensemble", end=" ")
         predictions = [knn_y_pred, rf_y_pred, svm_y_pred]
         y_pred = [Counter(l).most_common(1)[0][0] for l in zip(*predictions)]
         test_recall = recall_score(y_test, y_pred)
         test_precision = precision_score(y_test, y_pred)
-        print(round(test_recall, 2), round(test_precision, 2))
+        test_f1 = f1_score(y_test, knn_y_pred)
+        test_matt = matthews_corrcoef(y_test, knn_y_pred)
+        print(round(test_recall, 2), round(test_precision, 2), round(test_f1, 2), round(test_matt, 2))
 
 
 

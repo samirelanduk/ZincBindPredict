@@ -15,3 +15,4 @@ test_metrics.py
 explore.py
 diagnose.py
 server/jobs/*
+results.*
