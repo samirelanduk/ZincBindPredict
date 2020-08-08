@@ -66,8 +66,8 @@ for category in categories:
         rf_y_pred = model.predict(X_test)
         test_recall = recall_score(y_test, rf_y_pred)
         test_precision = precision_score(y_test, rf_y_pred)
-        test_f1 = f1_score(y_test, knn_y_pred)
-        test_matt = matthews_corrcoef(y_test, knn_y_pred)
+        test_f1 = f1_score(y_test, rf_y_pred)
+        test_matt = matthews_corrcoef(y_test, rf_y_pred)
         print(round(test_recall, 2), round(test_precision, 2), round(test_f1, 2), round(test_matt, 2))
 
         print("    SVM", end=" ")
@@ -79,8 +79,8 @@ for category in categories:
         svm_y_pred = model.predict(X_test)
         test_recall = recall_score(y_test, svm_y_pred)
         test_precision = precision_score(y_test, svm_y_pred)
-        test_f1 = f1_score(y_test, knn_y_pred)
-        test_matt = matthews_corrcoef(y_test, knn_y_pred)
+        test_f1 = f1_score(y_test, svm_y_pred)
+        test_matt = matthews_corrcoef(y_test, svm_y_pred)
         print(round(test_recall, 2), round(test_precision, 2), round(test_f1, 2), round(test_matt, 2))
 
         print("    Ensemble", end=" ")
@@ -88,8 +88,8 @@ for category in categories:
         y_pred = [Counter(l).most_common(1)[0][0] for l in zip(*predictions)]
         test_recall = recall_score(y_test, y_pred)
         test_precision = precision_score(y_test, y_pred)
-        test_f1 = f1_score(y_test, knn_y_pred)
-        test_matt = matthews_corrcoef(y_test, knn_y_pred)
+        test_f1 = f1_score(y_test, y_pred)
+        test_matt = matthews_corrcoef(y_test, y_pred)
         print(round(test_recall, 2), round(test_precision, 2), round(test_f1, 2), round(test_matt, 2))
 
 

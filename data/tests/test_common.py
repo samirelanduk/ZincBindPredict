@@ -7,18 +7,20 @@ class SequenceSiteToVectorTests(TestCase):
 
     @patch("data.common.average_hydrophobicity")
     def test_can_get_features_from_sequence(self, mock_hydro):
-        mock_hydro.side_effect = [1.1, 0.5]
+        mock_hydro.side_effect = [1.1, 0.5, 1.2, 0.8]
         sequence = "xxxxXxxxxxxxxXxx"
         self.assertEqual(sequence_site_to_vector(sequence), {
-            "gap1": 8, "hydrophobicity": 1.1
+            "gap1": 8, "hydrophobicity_1": 1.1, "hydrophobicity_3": 0.5
         })
-        mock_hydro.assert_called_with(sequence)
+        mock_hydro.assert_any_call(sequence, window=1)
+        mock_hydro.assert_any_call(sequence, window=3)
         sequence = "xxxxXxxxxxxxxXxxXXxxxXxxxxxxX"
         self.assertEqual(sequence_site_to_vector(sequence), {
             "gap1": 8, "gap2": 2, "gap3": 0, "gap4": 3, "gap5": 6,
-            "hydrophobicity": 0.5
+            "hydrophobicity_1": 1.2, "hydrophobicity_3": 0.8
         })
-        mock_hydro.assert_called_with(sequence)
+        mock_hydro.assert_any_call(sequence, window=1)
+        mock_hydro.assert_any_call(sequence, window=3)
 
 
 
@@ -51,6 +53,10 @@ class AverageHydrophobicityTests(TestCase):
 
     def test_average_hydrophobicity_unknown_residue(self):
         self.assertEqual(average_hydrophobicity("xzCwx"), -1.85)
+    
+
+    def test_average_multiple_hydrophobicity_one_residue(self):
+        self.assertEqual(average_hydrophobicity("dxaCwcla", window=3), -0.25)
 
 
 

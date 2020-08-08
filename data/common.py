@@ -15,7 +15,8 @@ def sequence_site_to_vector(sequence):
     residues = [i for i, char in enumerate(sequence) if char.isupper()]
     for i, residues in enumerate(zip(residues[:-1], residues[1:]), start=1):
         site[f"gap{i}"] = residues[1] - residues[0] - 1
-    site["hydrophobicity"] = average_hydrophobicity(sequence)
+    site["hydrophobicity_1"] = average_hydrophobicity(sequence, window=1)
+    site["hydrophobicity_3"] = average_hydrophobicity(sequence, window=3)
     return site
 
 
@@ -33,7 +34,7 @@ def split_family(family):
     return subfamilies
 
 
-def average_hydrophobicity(sequence):
+def average_hydrophobicity(sequence, window=1):
     """Takes a sequence, looks at the residues on either side of the upper case
     binding residues, and works out the average of their hydrophobicities."""
 
@@ -43,13 +44,18 @@ def average_hydrophobicity(sequence):
         "M": -0.23, "F": -1.13, "P": 0.45, "S": 0.13, "T": 0.14, "W": -1.85,
         "Y": -0.94, "V": 0.07
     }
-    scores = [score for sublist in [
-        [
-            scale.get(sequence[index - 1].upper()) if index != 0 else None,
-            scale.get(sequence[index + 1].upper()) if\
-             index != len(sequence) - 1 else None
-        ] for index, char in enumerate(sequence) if char.isupper()
-    ] for score in sublist if score is not None]
+    scores = []
+    for index, char in enumerate(sequence):
+        if char.isupper():
+            for offset in range(window):
+                offset_index = index + offset + 1
+                if offset_index < len(sequence):
+                    score = scale.get(sequence[offset_index].upper())
+                    if score is not None: scores.append(score)
+                offset_index = index - (offset + 1)
+                if offset_index >= 0:
+                    score = scale.get(sequence[offset_index].upper())
+                    if score is not None: scores.append(score)
     return round(sum(scores) / len(scores), 3)
 
 
