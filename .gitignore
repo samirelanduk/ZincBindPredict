@@ -16,3 +16,4 @@ explore.py
 diagnose.py
 server/jobs/*
 results.*
+*-ensemble.json
