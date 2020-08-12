@@ -12,9 +12,7 @@ from sklearn.model_selection import train_test_split, GridSearchCV
 from sklearn.metrics import recall_score, precision_score, f1_score, matthews_corrcoef
 from sklearn.preprocessing import StandardScaler
 from sklearn.pipeline import Pipeline
-from sklearn.neighbors import KNeighborsClassifier
 from sklearn.ensemble import RandomForestClassifier
-from sklearn.svm import SVC
 from predict.utilities import *
 
 # What categories and datasets should be used?
@@ -30,8 +28,8 @@ def train_model(Model, grid, X, y):
     for grid_run in grid:
         for hyperparam in grid_run:
             hyperparams[hyperparam] = grid_search.get_params()[f"estimator__{hyperparam}"]
-    if Model is SVC: hyperparams["probability"] = True
     model = Pipeline([("scaler", scaler), ("Model", Model(**hyperparams))])
+    model.hyperparams_ = hyperparams
     model.fit(X, y)
     return model
 
@@ -49,19 +47,10 @@ for category in categories:
         X, y = data[:, :-1], data[:, -1]
         X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=23)
 
-        print("    KNN", end=" ")
-        model = train_model(KNeighborsClassifier, [{"n_neighbors": [1, 3, 5]}], X_train, y_train)
-        knn_y_pred = model.predict(X_test)
-        test_recall = model.recall_ = recall_score(y_test, knn_y_pred)
-        test_precision = model.precision_ = precision_score(y_test, knn_y_pred)
-        test_f1 = model.f1_ = f1_score(y_test, knn_y_pred)
-        test_matt = model.matthew_ = matthews_corrcoef(y_test, knn_y_pred)
-        joblib.dump(model, os.path.join("predict", "models", category, f"{dataset}-KNN.joblib"))
-        print(round(test_recall, 2), round(test_precision, 2), round(test_f1, 2), round(test_matt, 2))
-
         print("    RF", end=" ")
         model = train_model(RandomForestClassifier, [{
-            "n_estimators": [10, 100, 1000], "max_depth": [10, 50, 100, None]
+            "n_estimators": [10, 100, 1000], "max_depth": [4, 6, 8, None],
+            "criterion": ["gini", "entropy"], "max_features": ["auto", "sqrt", "log2"],
         }], X_train, y_train)
         rf_y_pred = model.predict(X_test)
         test_recall = model.recall_ = recall_score(y_test, rf_y_pred)
@@ -70,33 +59,8 @@ for category in categories:
         test_matt = model.matthew_ = matthews_corrcoef(y_test, rf_y_pred)
         joblib.dump(model, os.path.join("predict", "models", category, f"{dataset}-RF.joblib"))
         print(round(test_recall, 2), round(test_precision, 2), round(test_f1, 2), round(test_matt, 2))
-
-        print("    SVM", end=" ")
-        model = train_model(SVC, [
-            {"C": [1, 10, 100, 1000], "kernel": ["linear"]},
-            {"C": [1, 10, 100, 1000], "gamma": [0.001, 0.0001], "kernel": ["rbf"]},
-        ], X_train, y_train)
-        svm_y_pred = model.predict(X_test)
-        test_recall = model.recall_ = recall_score(y_test, svm_y_pred)
-        test_precision = model.precision_ = precision_score(y_test, svm_y_pred)
-        test_f1 = model.f1_ = f1_score(y_test, svm_y_pred)
-        test_matt = model.matthew_ = matthews_corrcoef(y_test, svm_y_pred)
-        joblib.dump(model, os.path.join("predict", "models", category, f"{dataset}-SVM.joblib"))
-        print(round(test_recall, 2), round(test_precision, 2), round(test_f1, 2), round(test_matt, 2))
-
-        print("    Ensemble", end=" ")
-        predictions = [knn_y_pred, rf_y_pred, svm_y_pred]
-        y_pred = [Counter(l).most_common(1)[0][0] for l in zip(*predictions)]
-        test_recall = recall_score(y_test, y_pred)
-        test_precision = precision_score(y_test, y_pred)
-        test_f1 = f1_score(y_test, y_pred)
-        test_matt = matthews_corrcoef(y_test, y_pred)
-        with open(os.path.join("predict", "models", category, f"{dataset}-ensemble.json"), "w") as f:
-            json.dump({"recall": test_recall, "precision": test_precision, "f1": test_f1, "matthew": test_matt}, f)
-        print(round(test_recall, 2), round(test_precision, 2), round(test_f1, 2), round(test_matt, 2))
-
-
-
+        for hyperparam in model.hyperparams_:
+            print("   ", hyperparam, model.hyperparams_[hyperparam])
 
 
 
