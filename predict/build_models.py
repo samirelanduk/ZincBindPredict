@@ -8,7 +8,8 @@ import pandas as pd
 import joblib
 import json
 from collections import Counter
-from sklearn.model_selection import train_test_split, GridSearchCV
+import matplotlib.pyplot as plt
+from sklearn.model_selection import train_test_split, GridSearchCV, learning_curve
 from sklearn.metrics import recall_score, precision_score, f1_score, matthews_corrcoef
 from sklearn.preprocessing import StandardScaler
 from sklearn.pipeline import Pipeline
@@ -18,21 +19,18 @@ from predict.utilities import *
 # What categories and datasets should be used?
 categories = get_categories_from_arguments_and_filesystem(sys.argv)
 
-def train_model(Model, grid, X, y):
-    scaler = StandardScaler()
-    scaler.fit(X)
-    X_scaled = scaler.transform(X)
-    grid_search = GridSearchCV(Model(), grid, cv=5, scoring="f1")
-    grid_search.fit(X_scaled, y)
-    hyperparams = {}
-    for grid_run in grid:
-        for hyperparam in grid_run:
-            hyperparams[hyperparam] = grid_search.get_params()[f"estimator__{hyperparam}"]
-    model = Pipeline([("scaler", scaler), ("Model", Model(**hyperparams))])
+def train_model(X, y):
+    grid = {
+        "n_estimators": [10, 100, 1000], "max_depth": [4, 6, 8, None],
+        "criterion": ["gini", "entropy"], "max_features": ["sqrt", "log2"],
+    }
+    grid_search = GridSearchCV(RandomForestClassifier(), grid, cv=5, scoring="f1")
+    grid_search.fit(X, y)
+    hyperparams = grid_search.best_params_
+    model = RandomForestClassifier(**hyperparams)
     model.hyperparams_ = hyperparams
     model.fit(X, y)
     return model
-
 
 
 # Go through each category...
@@ -48,10 +46,7 @@ for category in categories:
         X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=23)
 
         print("    RF", end=" ")
-        model = train_model(RandomForestClassifier, [{
-            "n_estimators": [10, 100, 1000], "max_depth": [4, 6, 8, None],
-            "criterion": ["gini", "entropy"], "max_features": ["auto", "sqrt", "log2"],
-        }], X_train, y_train)
+        model = train_model(X_train, y_train)
         rf_y_pred = model.predict(X_test)
         test_recall = model.recall_ = recall_score(y_test, rf_y_pred)
         test_precision = model.precision_ = precision_score(y_test, rf_y_pred)
@@ -61,6 +56,23 @@ for category in categories:
         print(round(test_recall, 2), round(test_precision, 2), round(test_f1, 2), round(test_matt, 2))
         for hyperparam in model.hyperparams_:
             print("   ", hyperparam, model.hyperparams_[hyperparam])
+
+        # Create learning curve
+        print("    Calculating learning curve...")
+        train_sizes = [
+            0.01, 0.02, 0.03, 0.04, 0.05, 0.06, 0.08, 0.1, 0.2, 0.3, 0.4, 0.6, 0.8, 1
+        ]
+        scores = learning_curve(
+            RandomForestClassifier(**model.hyperparams_), X_train, y_train,
+            train_sizes=train_sizes, scoring="f1", cv=5, n_jobs=-1
+        )
+        model.learning_curve_ = scores
+        plt.plot(scores[0], [v.mean() for v in scores[2]], label="Test F1")
+        plt.xlabel("Training set size")
+        plt.ylabel("F1 Score")
+        plt.title(f"{dataset} {category.replace('-families', '')}")
+        plt.savefig(f"predict/models/{category}/{dataset}-learning-curve.svg")
+        plt.clf()
 
 
 
