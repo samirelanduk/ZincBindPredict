@@ -53,7 +53,7 @@ for category in categories:
         test_f1 = model.f1_ = f1_score(y_test, rf_y_pred)
         test_matt = model.matthew_ = matthews_corrcoef(y_test, rf_y_pred)
         joblib.dump(model, os.path.join("predict", "models", category, f"{dataset}-RF.joblib"))
-        print(round(test_recall, 2), round(test_precision, 2), round(test_f1, 2), round(test_matt, 2))
+        print(round(test_recall, 4), round(test_precision, 4), round(test_f1, 4), round(test_matt, 4))
         for hyperparam in model.hyperparams_:
             print("   ", hyperparam, model.hyperparams_[hyperparam])
 
