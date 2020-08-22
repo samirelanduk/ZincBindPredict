@@ -35,24 +35,13 @@ try:
             if not vectors: continue
 
             # Run vectors through models
-            knn_model = joblib.load(f"predict/models/structure-families/{family}-KNN.joblib")
-            knn_predicted = knn_model.predict(vectors)
-            knn_probabilities = [p[1] for p in knn_model.predict_proba(vectors)]
-
             rf_model = joblib.load(f"predict/models/structure-families/{family}-RF.joblib")
-            rf_predicted = rf_model.predict(vectors)
-            rf_probabilities = [p[1] for p in rf_model.predict_proba(vectors)]
-
-            svm_model = joblib.load(f"predict/models/structure-families/{family}-SVM.joblib")
-            svm_predicted = svm_model.predict(vectors)
-            svm_probabilities = [p[1] for p in svm_model.predict_proba(vectors)]
-
-            predicted = [Counter(votes).most_common()[0][0] for votes in zip(knn_predicted, rf_predicted, svm_predicted)]
-            probabilities = [sum(votes) / 3 for votes in zip(knn_probabilities, rf_probabilities, svm_probabilities)]
+            predicted = rf_model.predict(vectors)
+            probabilities = [p[1] for p in rf_model.predict_proba(vectors)]
 
             # Add sites to job object
             for site, positive, probability in zip(possibles, predicted, probabilities):
-                l = job["sites"] if positive else job["rejected_sites"]
+                l = job["sites"] if positive and probability > 0.95 else job["rejected_sites"]
                 site = {
                     "probability": probability, "family": family, "half": False,
                     "residues": [{"name": res.name, "identifier": res.id} for res in site]

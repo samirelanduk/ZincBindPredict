@@ -52,7 +52,6 @@ for category in categories:
         test_precision = model.precision_ = precision_score(y_test, rf_y_pred)
         test_f1 = model.f1_ = f1_score(y_test, rf_y_pred)
         test_matt = model.matthew_ = matthews_corrcoef(y_test, rf_y_pred)
-        joblib.dump(model, os.path.join("predict", "models", category, f"{dataset}-RF.joblib"))
         print(round(test_recall, 4), round(test_precision, 4), round(test_f1, 4), round(test_matt, 4))
         for hyperparam in model.hyperparams_:
             print("   ", hyperparam, model.hyperparams_[hyperparam])
@@ -67,6 +66,7 @@ for category in categories:
             train_sizes=train_sizes, scoring="f1", cv=5, n_jobs=-1
         )
         model.learning_curve_ = scores
+        joblib.dump(model, os.path.join("predict", "models", category, f"{dataset}-RF.joblib"))
         plt.plot(scores[0], [v.mean() for v in scores[2]], label="Test F1")
         plt.xlabel("Training set size")
         plt.ylabel("F1 Score")
