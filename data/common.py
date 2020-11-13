@@ -5,6 +5,9 @@ import random
 from itertools import combinations
 import math
 import numpy as np
+import sys
+sys.path.append("../zincbindpredict")
+from data.hydrophobicity import hydrophobic_contrast
 
 def sequence_site_to_vector(sequence):
     """Takes a sequence site and turns it into a feature vector. The site will
@@ -15,8 +18,13 @@ def sequence_site_to_vector(sequence):
     residues = [i for i, char in enumerate(sequence) if char.isupper()]
     for i, residues in enumerate(zip(residues[:-1], residues[1:]), start=1):
         site[f"gap{i}"] = residues[1] - residues[0] - 1
-    site["hydrophobicity_1"] = average_hydrophobicity(sequence, window=1)
-    site["hydrophobicity_3"] = average_hydrophobicity(sequence, window=3)
+        site[f"hydrophobicity{i}"] = average_hydrophobicity(sequence, span=[residues[0], residues[1]])
+    site["hydrophobicity_window_1"] = average_hydrophobicity(sequence, window=1)
+    site["hydrophobicity_window_3"] = average_hydrophobicity(sequence, window=3)
+    site["hydrophobicity_window_5"] = average_hydrophobicity(sequence, window=5)
+    site["charged_window_1"] = residue_count(sequence, "DERHK", window=1)
+    site["charged_window_3"] = residue_count(sequence, "DERHK", window=3)
+    site["charged_window_5"] = residue_count(sequence, "DERHK", window=5)
     return site
 
 
@@ -34,7 +42,7 @@ def split_family(family):
     return subfamilies
 
 
-def average_hydrophobicity(sequence, window=1):
+def average_hydrophobicity(sequence, window=1, span=None):
     """Takes a sequence, looks at the residues on either side of the upper case
     binding residues, and works out the average of their hydrophobicities."""
 
@@ -45,18 +53,53 @@ def average_hydrophobicity(sequence, window=1):
         "Y": -0.94, "V": 0.07
     }
     scores = []
+    if span:
+        for char in sequence[span[0] + 1:span[1]]:
+            score = scale.get(char.upper())
+            if score is not None: scores.append(score)
+    else:
+        for index, char in enumerate(sequence):
+            if char.isupper():
+                sub_sequence = sequence[index - window: index + window + 1]
+                for i, sub_char in enumerate(sub_sequence):
+                    if i != (len(sub_sequence) - 1) / 2:
+                        score = scale.get(sub_char.upper())
+                        if score is not None: scores.append(score)
+    return round(sum(scores) / len(scores), 3) if len(scores) else 0
+
+
+def residue_count(sequence, residues, window=1, span=None):
+    """"""
+
+    
+    counts = 0
+    total_window = 0
+
     for index, char in enumerate(sequence):
         if char.isupper():
-            for offset in range(window):
-                offset_index = index + offset + 1
-                if offset_index < len(sequence):
-                    score = scale.get(sequence[offset_index].upper())
-                    if score is not None: scores.append(score)
-                offset_index = index - (offset + 1)
-                if offset_index >= 0:
-                    score = scale.get(sequence[offset_index].upper())
-                    if score is not None: scores.append(score)
-    return round(sum(scores) / len(scores), 3)
+            sub_sequence = sequence[index - window: index + window + 1]
+
+            for i, sub_char in enumerate(sub_sequence):
+                    if i != (len(sub_sequence) - 1) / 2:
+                        total_window += 1
+                        if sub_char.upper() in residues.upper(): counts += 1
+    return round(counts / total_window, 3) if total_window else 0
+
+
+def hydrophobic_contrast_function(residues):
+    """Calculates the hydrophobic contrast function for the centre of some
+    residues."""
+
+    # Centre
+    locations = [r.atom(name="CB").location for r in residues if r.atom(name="CB")]
+    location = [sum(dimension) / len(dimension) for dimension in zip(*locations)]
+
+    model = residues[0].model
+
+    c = hydrophobic_contrast(model, *location, radius=4, metal=False)
+
+    return c
+
 
 
 def structure_family_site_to_vector(residues):
@@ -77,8 +120,10 @@ def structure_family_site_to_vector(residues):
         sample["cb_std"] = round(np.std(betas), 3)
         sample["cb_min"] = round(min(betas), 3)
         sample["cb_max"] = round(max(betas), 3)
-        sample["helix"] = len([r for r in residues if r.helix])
-        sample["strand"] = len([r for r in residues if r.strand])
+        sample["hcf"] = hydrophobic_contrast_function(residues)
+        #sample["helix"] = len([r for r in residues if r.helix])
+        #sample["strand"] = len([r for r in residues if r.strand])
+        if sample["ca_max"] > 30: return None
         return sample
     except Exception as e: return None
 

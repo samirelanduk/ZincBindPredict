@@ -1,6 +1,7 @@
 """Utilility functions for enabling API access to the models."""
 
 import sys
+import os
 sys.path.append(".")
 import time
 from itertools import combinations, product
@@ -10,6 +11,10 @@ import os
 import json
 from django.http import JsonResponse
 from data.common import split_family
+
+def is_server():
+    with open("temp2.txt", "w") as f: f.write(str(os.listdir()))
+    return "core" in os.listdir()
 
 def initialize_job(protein, locations=False):
     """Creates an empty job dictionary with an ID created from the current
@@ -28,7 +33,9 @@ def initialize_job(protein, locations=False):
 def get_job_location(id):
     """Gets the location of a job file on disk."""
 
-    return f"server{os.path.sep}jobs{os.path.sep}{id}.json"
+    if not is_server():
+        return f"server{os.path.sep}jobs{os.path.sep}{id}.json"
+    return f"core{os.path.sep}jobs{os.path.sep}{id}.json"
 
 
 def save_job(job, status=None):
@@ -46,7 +53,8 @@ def save_structure_file(uploaded_file, job_id):
     name = uploaded_file.name
     file_extension = ("." + name.split(".")[-1]) if "." in name else ""
     file_name = f"{job_id}{file_extension}"
-    file_path = f"server{os.path.sep}jobs{os.path.sep}{file_name}"
+    file_path = f"server{os.path.sep}jobs{os.path.sep}{file_name}" if \
+        not is_server() else f"core{os.path.sep}jobs{os.path.sep}{file_name}"
     with open(file_path, "wb") as f:
         f.write(uploaded_file.read())
     return file_name
@@ -102,7 +110,7 @@ def get_model_for_job(filename):
     """Gets an atomium model from a given filename representing a local
     structure file."""
 
-    model =  atomium.open(f"server{os.path.sep}jobs{os.path.sep}{filename}").model
+    model =  atomium.open(f"server{os.path.sep}jobs{os.path.sep}{filename}").model if not is_server() else atomium.open(f"core{os.path.sep}jobs{os.path.sep}{filename}").model
     model.optimise_distances()
     return model
 

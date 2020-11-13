@@ -3,5 +3,6 @@ from graphene_file_upload.django import FileUploadGraphQLView
 from django.urls import path
 
 urlpatterns = [
+ path("graphql/", FileUploadGraphQLView.as_view(graphiql=True)),
  path("", FileUploadGraphQLView.as_view(graphiql=True)),
 ]

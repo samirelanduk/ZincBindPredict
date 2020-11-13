@@ -24,7 +24,7 @@ def main():
 
     try:
         for family in get_sequence_families():
-            if family in arguments["families"] or arguments["families"] == []:
+            if family in arguments.get("families", []) or not arguments.get("families"):
                 # Update status
                 save_job(job, status=f"Looking for {family} sites")
 
@@ -47,11 +47,11 @@ def main():
                 
                 # Add sites to job object
                 for site, positive, probability in zip(possibles, predicted, probabilities):
-                    l = job["sites"] if positive and probability > 0.95 else job["rejected_sites"]
+                    l = job["sites"] if positive and probability > 0.99 else job["rejected_sites"]
                     site = {
                         "probability": probability, "family": family, "residues": site
                     }
-                    l.append(site)
+                    if positive and probability > 0.99: l.append(site)
                     l.sort(key=lambda s: -s["probability"])
                     
                 # Save job

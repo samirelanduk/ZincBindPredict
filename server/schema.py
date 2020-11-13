@@ -137,7 +137,11 @@ class SearchSequence(graphene.Mutation):
         job = initialize_job(kwargs["sequence"])
         save_job(job)
         kwargs["job_id"] = job["id"]
-        Popen(["server/sequence_job.py", json.dumps(kwargs)])
+        print(kwargs)
+        if is_server():
+            Popen(["../env/bin/python", "core/sequence_job.py", json.dumps(kwargs)])
+        else:
+            Popen(["python", "server/sequence_job.py", json.dumps(kwargs)])
         return SearchSequence(job_id=job["id"])
 
 
@@ -159,7 +163,10 @@ class SearchStructure(graphene.Mutation):
         kwargs["structure"] = save_structure_file(kwargs["structure"], job["id"])
         save_job(job)
         kwargs["job_id"] = job["id"]
-        Popen(["server/structure_job.py", json.dumps(kwargs)])
+        if is_server():
+            Popen(["../env/bin/python", "core/structure_job.py", json.dumps(kwargs)])
+        else:
+            Popen(["python", "server/structure_job.py", json.dumps(kwargs)])
         return SearchStructure(job_id=job["id"])
         
 

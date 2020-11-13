@@ -31,6 +31,11 @@ try:
 
             # Convert possible sites to vectors
             dicts = [structure_family_site_to_vector(possible) for possible in possibles]
+            remove = []
+            for i, d in enumerate(dicts):
+                if d is None: remove.append(i)
+            possibles = [p for i, p in enumerate(possibles) if i not in remove]
+            dicts = [d for i, d in enumerate(dicts) if i not in remove]
             vectors = [list(d.values()) for d in dicts]
             if not vectors: continue
 
@@ -83,7 +88,7 @@ try:
 
             # Add sites to job object
             for site, positive, probability in zip(possibles, predicted, probabilities):
-                l = job["sites"] if positive else job["rejected_sites"]
+                l = job["sites"] if positive and probability > 0.99 else job["rejected_sites"]
                 site = {
                     "probability": probability, "family": half_family, "half": True,
                     "residues": [{"name": res.name, "identifier": res.id} for res in site]

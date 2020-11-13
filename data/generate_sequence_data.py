@@ -11,18 +11,20 @@ from utilities import *
 API_URL = "https://api.zincbind.net/"
 
 ALL_CHAINS_QUERY = """{chainClusters { edges { node { id chains(first: 1) {
-    edges { node { sequence } }
+    edges { node { id sequence } }
 } } } } }"""
 
 FAMILY_CHAINS_QUERY = """query familySites($family: String) {
     zincsites(family: $family) { edges { node { 
-        id chainInteractions { edges { node { sequence } } }
+        id chainInteractions { edges { node { sequence chain { id } } } }
     } } }
 }"""
 
 # Download all unique chains - these will be used for generating negatives
 clusters = fetch_data(API_URL, ALL_CHAINS_QUERY, {})
-unique_sequences = [cluster["chains"][0]["sequence"] for cluster in clusters]
+unique_sequences = [cluster["chains"][0] for cluster in clusters]
+unique_ids = [unique["id"] for unique in unique_sequences]
+unique_sequences = [c["sequence"] for c in unique_sequences]
 print(f"Using {len(unique_sequences)} unique sequences for negative samples")
 
 # What families should be used?
@@ -42,12 +44,12 @@ for family in families:
     # Get one sequence for each site, and only use sites on one chain
     family_sequences = [
         site["chainInteractions"][0]["sequence"] for site in family_sites
-         if len(site["chainInteractions"]) == 1
+         if len(site["chainInteractions"]) == 1# and site["chainInteractions"][0]["chain"]["id"] in unique_ids
     ]
 
     # How many sequence sites are there and how many negatives should there be?
     positive_count = len(family_sequences)
-    negative_count = positive_count * 10
+    negative_count = positive_count
     with tqdm(total=positive_count + negative_count) as pbar:
 
         # Get positive samples for them

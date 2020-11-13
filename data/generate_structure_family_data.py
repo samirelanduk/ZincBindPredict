@@ -7,7 +7,7 @@ from tqdm import tqdm
 from common import structure_family_site_to_vector
 from utilities import *
 
-API_URL = "https://api.zincbind.net/"
+API_URL = "http://localhost:7000/"
 
 FAMILY_SITES_QUERY = """query familySites($family: String) {
     zincsites(family: $family, pdb__resolution__lt: 2) { edges { node { 
@@ -50,10 +50,10 @@ for family in families:
                 )
 
             # Get model for this PDB
-            pdb = atomium.fetch(site["pdb"]["id"])
             try:
+                pdb = atomium.fetch(site["pdb"]["id"])
                 current_model = pdb.generate_assembly(site["pdb"]["assembly"])
-            except ValueError: continue
+            except Exception: continue
             current_pdb = site["pdb"]["id"]
             current_model.optimise_distances()
             positive_sites_from_model = []

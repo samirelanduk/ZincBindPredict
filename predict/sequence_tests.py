@@ -10,6 +10,8 @@ For sequence in sequences:
 
 import sys
 sys.path.append("../zincbindpredict")
+import warnings
+warnings.warn = lambda *args, **kwargs: None
 from data.utilities import fetch_data
 from data.common import sequence_site_to_vector
 from server.utilities import sequence_to_family_inputs
@@ -26,7 +28,7 @@ with open("data/families.dat") as f:
 
 models = {f: joblib.load(f"predict/models/sequence/{f}-RF.joblib") for f in FAMILIES}
 
-chains = fetch_data("http://localhost:7000", QUERY, {})
+chains = fetch_data("https://api.zincbind.net", QUERY, {})
 
 true_positives = 0
 false_negatives = 0
@@ -103,12 +105,12 @@ print("TP", true_positives)
 print("FP", false_positives)	
 print("FN", false_negatives)	
 print("TN", true_negatives)
-print("Recall", true_positives / (true_positives + false_negatives))
-print("Precision", true_positives / (true_positives + false_positives))
+print("Recall", round(true_positives / (true_positives + false_negatives), 3))
+print("Precision", round(true_positives / (true_positives + false_positives), 3))
 print()
 print("family_TP", family_true_positives)	
 print("family_FP", family_false_positives)	
 print("family_FN", family_false_negatives)	
 print("family_TN", family_true_negatives)
-print("family_Recall", family_true_positives / (family_true_positives + family_false_negatives))
-print("family_Precision", family_true_positives / (family_true_positives + family_false_positives))
+print("family_Recall", round(family_true_positives / (family_true_positives + family_false_negatives), 3))
+print("family_Precision", round(family_true_positives / (family_true_positives + family_false_positives), 3))

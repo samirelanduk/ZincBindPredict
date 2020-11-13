@@ -4,6 +4,8 @@ import random
 import os
 import kirjava
 from collections import Counter
+import sys
+sys.path.append("../zincbindpredict")
 from data.common import split_family, structure_family_site_to_vector
 
 def fetch_data(url, query, variables):
@@ -78,7 +80,7 @@ def create_negative_samples_for_model(model, family, positives):
 
     negative_samples = []
     iter_count = 0
-    while len(negative_samples) < len(positives) * 10:
+    while len(negative_samples) < len(positives) * 1:
         random_combination = random_structure_family_input(model, family)
         if not random_combination: break
         if set(random_combination) not in positives:
