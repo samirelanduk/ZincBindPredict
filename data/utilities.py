@@ -2,11 +2,33 @@
 
 import random
 import os
+import subprocess
+import re
+import requests
+from ftplib import FTP
+from io import BytesIO
+import gzip
+import json
 import kirjava
+import atomium
 from collections import Counter
 import sys
 sys.path.append("../zincbindpredict")
-from data.common import split_family, structure_family_site_to_vector
+
+def parse_data_args(args, clustering=True):
+    """Gets the desired settings from the args list."""
+
+    clustering = None
+    with open("data/families.dat") as f: families = f.read().splitlines()
+    for arg in args:
+        if arg.startswith("--limit="):
+            families = [f for f in families if f in arg[8:].split(",")]
+        if arg.startswith("--exclude="):
+            families = [f for f in families if f not in arg[10:].split(",")]
+        if arg.startswith("--clustering="):
+            similarity = float(arg[13:])
+    return (families, similarity) if clustering else families
+
 
 def fetch_data(url, query, variables):
     """Gets data from the ZincBindDB API and formats it to remove all the edges
@@ -24,18 +46,38 @@ def fetch_data(url, query, variables):
     return list(data.values())[0]
 
 
-def save_csv(positives, negatives, name, path):
+def chars_to_family(chars):
+    """Takes a list of characters and constructs a family from them. So, A1B2
+    would be created from ['B', 'A', 'B'] for example."""
+
+    counter = Counter(chars)
+    return "".join(sorted([char + str(n) for char, n in counter.items()]))
+
+
+def split_family(family):
+    """Takes a family such as 'C3H1' and splits it into subfamilies such as 'C3'
+    and 'H1'."""
+
+    subfamilies, subfamily = [], ""
+    for char in family:
+        if char.isalpha() and subfamily:
+            subfamilies.append([subfamily[0], int(subfamily[1:])])
+            subfamily = ""
+        subfamily += char
+    subfamilies.append([subfamily[0], int(subfamily[1:])])
+    return subfamilies
+
+
+def save_csv(positives, negatives, name, similarity, path):
     """Takes a list of positive samples and a list of negative samples, and
     saves them to CSV."""
 
     if not positives and not negatives: return
-
-    path = f"{path}{os.path.sep}{name}.csv"
+    similarity = f"_{int(similarity * 100)}" if similarity else ""
+    path = f"{path}{os.path.sep}{name}{similarity}.csv"
     lines = []
-    flag = "a+"
-    if not os.path.exists(path):
-        lines.append(",".join((positives + negatives)[0].keys()) + ",positive")
-        #flag = "w"
+    flag = "w"
+    lines.append(",".join((positives + negatives)[0].keys()) + ",positive")
     for index, samples in enumerate([positives, negatives]):
         for sample in samples:
             lines.append(",".join([str(v) for v in sample.values()] + [str(1 - index)]))
@@ -43,7 +85,58 @@ def save_csv(positives, negatives, name, path):
         f.write("\n".join(lines) + "\n")
 
 
-def random_sequence_family_input(sequence, family):
+def cluster_sequences(sequences, similarity):
+    """Takes a list of sequences and clusters them by some amount. CD-HIT must
+    be installed."""
+
+    lines = [f">{i}\n{s.upper()}" for i, s in enumerate(sequences)]
+    try:
+        with open("chains.fasta", "w") as f: f.write("\n".join(lines))
+        subprocess.call(
+            "cd-hit -i chains.fasta -d 0 -o temp -c {} -n 2 -G 1 -g 1 -b 20 "
+            "-s 0.0 -aL 0.0 -aS 0.0 -T 4 -M 32000".format(similarity),
+            shell=True, stdout=subprocess.PIPE
+        )
+        with open("temp.clstr") as f: clusters = f.read()
+        clusters = clusters.split(">Cluster ")[1:]
+        clusters = [[sequences[int(i)] for i in clust] for clust in reversed(
+            sorted([
+                re.compile(r">(.+?)\.\.\.").findall(c) for c in clusters
+            ], key=len)
+        )]
+    finally:
+        if os.path.exists("chains.fasta"): os.remove("chains.fasta")
+        if os.path.exists("temp"): os.remove("temp")
+        if os.path.exists("temp.clstr"): os.remove("temp.clstr")
+    return [c[0] for c in clusters]
+
+
+def sequence_contains_family(sequence, family):
+    """Checks if a sequence contains a capitalied site of a given family."""
+
+    residues = sorted([r for r in sequence if r.isupper()])
+    return chars_to_family(residues) == family
+
+
+def get_all_uniprot_sequences():
+    """Gets all sequences un Uniprot, either from local disc (ideally), or from
+    the Uniprot FTP server."""
+    
+    try:
+        with open("uniprot_all.fasta") as f: text = f.read()
+    except FileNotFoundError:
+        ftp = FTP("ftp.uniprot.org")
+        ftp.login()
+        ftp.cwd("pub/databases/uniprot/current_release/knowledgebase/complete/")
+        f = BytesIO()
+        ftp.retrbinary("RETR uniprot_sprot.fasta.gz", f.write)
+        f.seek(0)
+        text = gzip.decompress(f.read()).decode()
+        with open("uniprot_all.fasta", "w") as f: f.write(text)
+    return ["".join(s.splitlines()[1:]).lower() for s in  text.split(">")[1:]]
+
+
+def get_random_sequence_site(sequence, family):
     """Takes a sequence string and gets a random binding site for a given
     family. If there is no matching site, returns None."""
 
@@ -58,11 +151,20 @@ def random_sequence_family_input(sequence, family):
         for index, char in enumerate(sequence)])
 
 
+def get_atomium_site(site):
+    """Takes the API JSON for a site and gets a list of atomium residues
+    representing that site."""
+
+    pdb = atomium.fetch(site["pdb"]["id"])
+    model = pdb.generate_assembly(site["pdb"]["assembly"])
+    model.optimise_distances()
+    site_residues = [r for r in site["residues"] if r["chainSignature"]]
+    return get_residues_from_model(model, site_residues)
+
+
 def get_residues_from_model(model, residues):
     """Takes a model, and some residues in JSON form, and then finds the
-    matching residues in the model.
-    
-    It will throw an exception if it encounters any problems."""
+    matching residues in the model. Sometimes this function fails."""
 
     at_residues = []
     for res in residues:
@@ -74,28 +176,30 @@ def get_residues_from_model(model, residues):
     return at_residues
 
 
-def create_negative_samples_for_model(model, family, positives):
-    """Takes a model, and generates a number of residue combinations for a given
-    family, excluding those flagges as positive."""
+def get_all_pdb_codes():
+    """Get all PDB codes from the RCSB."""
 
-    negative_samples = []
-    iter_count = 0
-    while len(negative_samples) < len(positives) * 1:
-        random_combination = random_structure_family_input(model, family)
-        if not random_combination: break
-        if set(random_combination) not in positives:
-            vector = structure_family_site_to_vector(random_combination)
-            if vector:
-                negative_samples.append(vector)
-        iter_count += 1
-        if iter_count > 100 * len(positives): break
-    return negative_samples
+    zinc_codes = [p["id"] for p in fetch_data(
+        "https://api.zincbind.net", "{ pdbs { edges { node { id } } } }", {}
+    )]
+    query = {
+        "query": {"type": "terminal", "service": "text"},
+        "request_options": {"pager": {"start": 0, "rows": 1000000000}},
+        "return_type": "entry"
+    }
+    url = "https://search.rcsb.org/rcsbsearch/v1/query?json="
+    return [pdb["identifier"] for pdb in requests.get(
+        url + json.dumps(query)
+    ).json()["result_set"] if pdb["identifier"] not in zinc_codes]
 
 
-def random_structure_family_input(model, family):
-    """Takes an atomium model and generates a random combination of residues
-    matching a family, or None if that is impossible."""
-    
+def get_random_atomium_site(code, family):
+    """Gets a random binding site in the form of atomium residues matching some
+    family. If the code given has no matching site, None is returned."""
+
+    pdb = atomium.fetch(code)
+    model = atomium.fetch(code).model
+    model.optimise_distances()
     residues = []
     for subfamily in split_family(family):
         code, count = subfamily[0].upper(), subfamily[1]
@@ -103,205 +207,3 @@ def random_structure_family_input(model, family):
         if len(matching_residues) < count: return None
         residues += random.sample(matching_residues, count)
     return residues
-
-
-def chars_to_family(chars):
-    """Takes a list of characters and constructs a family from them. So, A1B2
-    would be created from ['B', 'A', 'B'] for example."""
-
-    counter = Counter(chars)
-    return "".join(sorted([char + str(n) for char, n in counter.items()]))
-    
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-def update_data_file(family, kind, samples=None):
-    """Saves samples to a CSV file if given, otherwise it just makes an empty
-    file ready for samples to be saved to it."""
-
-    path = f"data/csv/{kind}/{family}.csv"
-    if samples:
-        csv_lines = [",".join(samples[0].keys()) + "\n"]\
-         if os.path.getsize(path) == 0 else []
-        for sample in samples:
-            csv_lines.append(",".join([str(v) for v in sample.values()]) + "\n")
-        with open(path, "a") as f: f.writelines(csv_lines)
-    else:
-        with open(path, "w") as f: f.write("")
-
-
-
-
-
-def residues_to_sample(residues, site_id):
-    """Converts a set of residues into a dict of values ready to be classified
-    by the models."""
-
-    sample = {}
-    alphas, betas = [], []
-    try:
-        for res1, res2 in combinations(residues, 2):
-            alphas.append(res1.atom(name="CA").distance_to(res2.atom(name="CA")))
-            betas.append(res1.atom(name="CB").distance_to(res2.atom(name="CB")))
-        sample["site"] = site_id
-        sample["ca_mean"] = round(sum(alphas) / len(alphas), 3)
-        sample["ca_std"] = round(np.std(alphas), 3)
-        sample["ca_min"] = round(min(alphas), 3)
-        sample["ca_max"] = round(max(alphas), 3)
-        sample["cb_mean"] = round(sum(betas) / len(betas), 3)
-        sample["cb_std"] = round(np.std(betas), 3)
-        sample["cb_min"] = round(min(betas), 3)
-        sample["cb_max"] = round(max(betas), 3)
-        sample["helix"] = len([r for r in residues if r.helix])
-        sample["strand"] = len([r for r in residues if r.strand])
-        
-        '''stabiliser_contacts = set()
-        hydrogen_bonds = set()
-        for residue in residues:
-            for atom in residue.atoms():
-                nearby = atom.nearby_atoms(3.5)
-                for nearby_atom in nearby:
-                    if isinstance(nearby_atom.het, atomium.Residue)\
-                     and nearby_atom.het is not residue:
-                        stabiliser_contacts.add((atom, nearby_atom))
-                        if atom.element in ["N", "O", "CL"] and nearby_atom.element in ["N", "O", "CL"]:
-                            hydrogen_bonds.add((atom, nearby_atom))
-
-        sample["contacts"] = len(stabiliser_contacts)
-        sample["h_bonds"] = len(hydrogen_bonds)'''
-        return sample
-    except Exception as e: return None
-
-
-def model_to_residue_combos(model, family, ignore=None):
-    """Takes an atomium model and returns all combinations of residues which
-    match the family given. You can limit the number of combinations it returns
-    to prevent catastrophic consumption of residues if you want."""
-    
-    subfamilies = split_family(family)
-    residues = []
-    for subfamily in subfamilies:
-        residues += list(model.residues(code=subfamily[0]))
-    residues = {r: [r] for r in residues}
-
-    for res in residues:
-        for other_res in residues:
-            if res is not other_res and res.atom(name="CA") and\
-             other_res.atom(name="CA") and\
-              res.atom(name="CA").distance_to(other_res.atom(name="CA")) <= 25:
-                residues[res].append(other_res)
-    combos = set()
-    for res in residues:
-        residue_combos = []
-        for subfamily in subfamilies:
-            sub_res = [r for r in residues[res] if r.code == subfamily[0]]
-            residue_combos.append(combinations(sub_res, int(subfamily[1:])))
-        initial_combos = product(*residue_combos)
-        for combo in initial_combos:
-            combo = frozenset([item for sublist in combo for item in sublist])
-            ids = set([res.id for res in combo])
-            if not ignore or ids not in ignore:
-                combos.add(combo)
-    return combos
-
-
-def count_model_combinations(model, family):
-    """Takes a model and a family string, and returns the number of matching
-    residue combinations in that model."""
-
-    subfamilies = split_family(family)
-    counts = [[len(model.residues(code=f[0])), int(f[1:])] for f in subfamilies]
-    combo_counts = [(math.factorial(c[0]) / (
-     math.factorial(c[1]) * math.factorial(c[0] - c[1]
-    ))) if c[0] - c[1] >= 0 else 0 for c in counts]
-    count = reduce(lambda x, y: x * y, combo_counts) if combo_counts else 0
-    return int(count)
-
-
-
-
-def split_dataset(df):
-    """Takes a pandas dataset and produces four variants on it. They all have
-    the last column removed. The second one is limited to positive cases,
-    the third to negative cases, and the fourth is unlabelled *and* has no IDs.
-    """
-
-    unlabelled = df.iloc[:, :-1]
-    positives = df.loc[df["positive"] == 1].iloc[:, :-1]
-    negatives = df.loc[df["positive"] == -1].iloc[:, :-1]
-    core = df.iloc[:, 1:-1]
-    return unlabelled, positives, negatives, core
-
-
-def family_count(family):
-    return sum([int(sub[1:]) for sub in split_family(family)])
-
-
-def residue_sequence_count(sequence):
-    return len([char for char in sequence if char.isupper()])
-
-
-def sequence_to_sample(sequence, id):
-    sample = {}
-    residues = [[i, char] for i, char in enumerate(sequence) if char.isupper()]
-    sample["id"] = id
-    for i, residues in enumerate(zip(residues[:-1], residues[1:]), start=1):
-        sample[f"gap{i}"] = residues[1][0] - residues[0][0]
-    return sample
-
-
-def sequence_to_residue_combos(sequence, family, limit=None, ignore=None):
-    sequence = sequence.lower()
-    combo_count = count_sequence_combinations(sequence, family)
-    indices = random.sample(range(combo_count), limit)\
-     if limit and limit <= combo_count else range(combo_count)
-    subfamilies = split_family(family)
-    residue_combos = []
-    for subfamily in subfamilies:
-        residues = [i for i, char in enumerate(sequence)
-         if char == subfamily[0].lower()]
-        residue_combos.append(combinations(residues, int(subfamily[1:])))
-    initial_combos = product(*residue_combos)
-    count, combos = 0, []
-    for combo in initial_combos:
-        if count in indices:
-            combo = tuple([item for sublist in combo for item in sublist])
-            if not ignore or combo not in ignore:
-                combos.append(combo)
-        count += 1
-    return ["".join([
-     c.upper() if i in combo else c for i, c in enumerate(sequence)
-    ]) for combo in combos]
-
-
-def count_sequence_combinations(sequence, family):
-    """Takes a sequence and a family string, and returns the number of matching
-    residue combinations in that sequence."""
-
-    subfamilies = split_family(family)
-    counts = [[len([
-     c for c in sequence.upper() if c == f[0]
-    ]), int(f[1:])] for f in subfamilies]
-    combo_counts = [(math.factorial(c[0]) / (
-     math.factorial(c[1]) * math.factorial(c[0] - c[1]
-    ))) if c[0] - c[1] >= 0 else 0 for c in counts]
-    count = reduce(lambda x, y: x * y, combo_counts) if combo_counts else 0
-    return int(count)

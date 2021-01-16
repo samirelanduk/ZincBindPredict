@@ -17,3 +17,5 @@ diagnose.py
 server/jobs/*
 results.*
 *-ensemble.json
+datafile.py
+uniprot_all.fasta

@@ -5,77 +5,55 @@ sys.path.append("../zincbindpredict")
 import kirjava
 import random
 from tqdm import tqdm
-from common import sequence_site_to_vector
+import subprocess
+import re
+from common import sequence_site_to_sample
 from utilities import *
 
 API_URL = "https://api.zincbind.net/"
 
-ALL_CHAINS_QUERY = """{chainClusters { edges { node { id chains(first: 1) {
-    edges { node { id sequence } }
-} } } } }"""
-
 FAMILY_CHAINS_QUERY = """query familySites($family: String) {
     zincsites(family: $family) { edges { node { 
-        id chainInteractions { edges { node { sequence chain { id } } } }
+        id chainInteractions { edges { node { sequence } } }
     } } }
 }"""
 
-# Download all unique chains - these will be used for generating negatives
-clusters = fetch_data(API_URL, ALL_CHAINS_QUERY, {})
-unique_sequences = [cluster["chains"][0] for cluster in clusters]
-unique_ids = [unique["id"] for unique in unique_sequences]
-unique_sequences = [c["sequence"] for c in unique_sequences]
-print(f"Using {len(unique_sequences)} unique sequences for negative samples")
+# Get options
+families, clustering = parse_data_args(sys.argv)
 
-# What families should be used?
-with open("data/families.dat") as f: families = f.read().splitlines()
-for arg in sys.argv:
-    if arg.startswith("--limit="):
-        families = [f for f in families if f in arg[8:].split(",")]
-    if arg.startswith("--exclude="):
-        families = [f for f in families if f not in arg[10:].split(",")]
-
+# Produce dataset for all families
 for family in families:
-    # Download all binding sites for this family
     print(f"Fetching {family} data...")
-    family_sites = fetch_data(API_URL, FAMILY_CHAINS_QUERY, {"family": family})
-    res_count = sum([int(c) for c in family if c.isdigit()])
-    
-    # Get one sequence for each site, and only use sites on one chain
-    family_sequences = [
-        site["chainInteractions"][0]["sequence"] for site in family_sites
-         if len(site["chainInteractions"]) == 1# and site["chainInteractions"][0]["chain"]["id"] in unique_ids
-    ]
 
-    # How many sequence sites are there and how many negatives should there be?
-    positive_count = len(family_sequences)
-    negative_count = positive_count
-    with tqdm(total=positive_count + negative_count) as pbar:
+    # Get sequence per binding site
+    sites = fetch_data(API_URL, FAMILY_CHAINS_QUERY, {"family": family})
+    sequences = [site["chainInteractions"][0]["sequence"] for site in sites if\
+        len(site["chainInteractions"]) == 1]
+    sequences = [s for s in sequences if sequence_contains_family(s, family)]
 
-        # Get positive samples for them
-        positive_samples = []
-        for sequence in family_sequences:
-            if len([c for c in sequence if c.isupper()]) == res_count:
-                positive_samples.append(sequence_site_to_vector(sequence))
-                pbar.update()
+    # Cluster them if necessary
+    if clustering: sequences = cluster_sequences(sequences, clustering)
 
-        # Get negative samples for this family - 10 per positive sample
-        negative_samples = []
-        while len(negative_samples) < negative_count:
-            # Pick a random unique_chain
-            unique_chain = random.sample(unique_sequences, 1)[0]
+    # Create dataset
+    positives, negatives = [], []
+    with tqdm(total=len(sequences) * 2) as pbar:
 
-            # Pick a random site within it
-            site = random_sequence_family_input(unique_chain, family)
-            if not site: continue
+        # Positives
+        for sequence in sequences:
+            positives.append(sequence_site_to_sample(sequence))
+            pbar.update()
 
-            # If it's not actually a positive sample, add it
-            if site not in family_sequences:
-                negative_samples.append(sequence_site_to_vector(site))
+        # Negatives
+        all_sequences = get_all_uniprot_sequences()
+        while len(negatives) != len(positives):
+            sequence = random.choice(all_sequences).lower()
+            site = get_random_sequence_site(sequence, family)
+            if site:
+                negatives.append(sequence_site_to_sample(site))
                 pbar.update()
     
     # Create CSV file for family
     save_csv(
-        positive_samples, negative_samples, family,
+        positives, negatives, family, clustering,
         os.path.join("data", "csv", "sequence")
     )
