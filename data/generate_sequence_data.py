@@ -31,29 +31,34 @@ for family in families:
         len(site["chainInteractions"]) == 1]
     sequences = [s for s in sequences if sequence_contains_family(s, family)]
 
-    # Cluster them if necessary
-    if clustering: sequences = cluster_sequences(sequences, clustering)
+    # Create dataset for each cluster
+    for similarity in clustering:
+        if similarity:
+            clustered_sequences = cluster_sequences(sequences, similarity)
+        else:
+            clustered_sequences = sequences[:]
 
-    # Create dataset
-    positives, negatives = [], []
-    with tqdm(total=len(sequences) * 2) as pbar:
+        # Create dataset
+        positives, negatives = [], []
+        print(f"{family} (clustering={similarity})")
+        with tqdm(total=len(clustered_sequences) * 2) as pbar:
 
-        # Positives
-        for sequence in sequences:
-            positives.append(sequence_site_to_sample(sequence))
-            pbar.update()
-
-        # Negatives
-        all_sequences = get_all_uniprot_sequences()
-        while len(negatives) != len(positives):
-            sequence = random.choice(all_sequences).lower()
-            site = get_random_sequence_site(sequence, family)
-            if site:
-                negatives.append(sequence_site_to_sample(site))
+            # Positives
+            for sequence in clustered_sequences:
+                positives.append(sequence_site_to_sample(sequence))
                 pbar.update()
-    
-    # Create CSV file for family
-    save_csv(
-        positives, negatives, family, clustering,
-        os.path.join("data", "csv", "sequence")
-    )
+
+            # Negatives
+            all_sequences = get_all_uniprot_sequences()
+            while len(negatives) != len(positives):
+                sequence = random.choice(all_sequences).lower()
+                site = get_random_sequence_site(sequence, family)
+                if site:
+                    negatives.append(sequence_site_to_sample(site))
+                    pbar.update()
+        
+        # Create CSV file for family and similarity
+        save_csv(
+            positives, negatives, family, similarity,
+            os.path.join("data", "csv", "sequence")
+        )

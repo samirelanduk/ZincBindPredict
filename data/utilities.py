@@ -18,7 +18,7 @@ sys.path.append("../zincbindpredict")
 def parse_data_args(args, clustering=True):
     """Gets the desired settings from the args list."""
 
-    clustering = None
+    similarity = [None]
     with open("data/families.dat") as f: families = f.read().splitlines()
     for arg in args:
         if arg.startswith("--limit="):
@@ -26,7 +26,7 @@ def parse_data_args(args, clustering=True):
         if arg.startswith("--exclude="):
             families = [f for f in families if f not in arg[10:].split(",")]
         if arg.startswith("--clustering="):
-            similarity = float(arg[13:])
+            similarity = [None if s == "n" else float(s) for s in arg[13:].split(",")]
     return (families, similarity) if clustering else families
 
 
@@ -92,9 +92,11 @@ def cluster_sequences(sequences, similarity):
     lines = [f">{i}\n{s.upper()}" for i, s in enumerate(sequences)]
     try:
         with open("chains.fasta", "w") as f: f.write("\n".join(lines))
+        word_size = 5 if similarity > 0.7 else 4 if similarity > 0.6 else\
+            3 if similarity > 0.5 else 2
         subprocess.call(
-            "cd-hit -i chains.fasta -d 0 -o temp -c {} -n 2 -G 1 -g 1 -b 20 "
-            "-s 0.0 -aL 0.0 -aS 0.0 -T 4 -M 32000".format(similarity),
+            "cd-hit -i chains.fasta -d 0 -o temp -c {} -n {} -G 1 -g 1 -b 20 "
+            "-s 0.0 -aL 0.0 -aS 0.0 -T 4 -M 32000".format(similarity, word_size),
             shell=True, stdout=subprocess.PIPE
         )
         with open("temp.clstr") as f: clusters = f.read()
