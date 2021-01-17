@@ -19,7 +19,8 @@ def parse_data_args(args, clustering=True):
     """Gets the desired settings from the args list."""
 
     similarity = [None]
-    with open("data/families.dat") as f: families = f.read().splitlines()
+    with open(os.path.join("data", "families.dat")) as f:
+        families = f.read().splitlines()
     for arg in args:
         if arg.startswith("--limit="):
             families = [f for f in families if f in arg[8:].split(",")]
