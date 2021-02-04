@@ -33,22 +33,6 @@ could be a H3 binding site.
 A combination of residues is represented by certain key metrics - distance
 between them, etc. For each family there needs to be a structure training data
 file and a sequence training data file.
-
-### Structures
-
-For each zinc binding site family, the ZincBind API is queried for all PDBs with
-a resolution better than 2 Angstroms, and all the binding sites they contain. In
-each PDB, the zinc binding sites' residues are recorded as positive combinations
-of residues, and all other combinations of residues that match the family are
-recorded as negative examples. As the combinatorics of this could produce very
-large numbers of these negative samples, a limit of 100 randomly selected
-instances is imposed.
-
-The inter-atomic distances of CA and CB atoms are recorded, as well as the
-number of residues part of secondary structure.
-
-### Sequences
-
 ## Model Building
 
 The core of ZincBindPredict is the models - these are the things created from

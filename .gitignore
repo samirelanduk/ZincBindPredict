@@ -19,3 +19,5 @@ results.*
 *-ensemble.json
 datafile.py
 uniprot_all.fasta
+paper.py
+psiblast.py
