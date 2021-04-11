@@ -9,7 +9,8 @@ import traceback
 from itertools import combinations, product
 from collections import Counter
 from utilities import *
-from data.common import sequence_site_to_vector
+from data.common import sequence_site_to_sample
+from data.utilities import split_family
 
 from random import random
 from time import sleep
@@ -24,6 +25,7 @@ def main():
 
     try:
         for family in get_sequence_families():
+            family = family.split("_")[0]
             if family in arguments.get("families", []) or not arguments.get("families"):
                 # Update status
                 save_job(job, status=f"Looking for {family} sites")
@@ -32,7 +34,7 @@ def main():
                 possibles = list(sequence_to_family_inputs(sequence, family))
 
                 # Convert possible sites to vectors
-                dicts = [sequence_site_to_vector(possible) for possible in possibles]
+                dicts = [sequence_site_to_sample(possible) for possible in possibles]
                 vectors = [list(d.values()) for d in dicts]
                 if not vectors: continue
                 max_length = max(len(v) for v in vectors)
@@ -40,7 +42,7 @@ def main():
 
                 # Run vectors through models
 
-                rf_model = joblib.load(f"predict/models/sequence/{family}-RF.joblib")
+                rf_model = joblib.load(f"predict/models/sequence/{family}_100.joblib")
                 predicted = rf_model.predict(vectors)
                 probabilities = [p[1] for p in rf_model.predict_proba(vectors)]
 

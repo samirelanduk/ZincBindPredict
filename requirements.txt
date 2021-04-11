@@ -9,9 +9,6 @@ joblib
 
 numpy
 pandas
-scikit-learn==0.21.1
-tensorflow
-
-jupyter
+scikit-learn==0.23.2
 
 python-coveralls

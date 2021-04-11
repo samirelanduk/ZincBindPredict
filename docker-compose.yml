@@ -1,0 +1,28 @@
+version: "3.9"
+services:
+  nginx:
+    hostname: nginx
+    container_name: zincbindpredict_nginx
+    build:
+      context: .
+      dockerfile: nginx-Dockerfile
+    image: samirelanduk/zincbindpredict_nginx
+    volumes:
+      - static_volume:/home/app/static
+    expose:
+      - 80
+    environment:
+      - VIRTUAL_HOST=predict.zincbind.net
+      - LETSENCRYPT_HOST=predict.zincbind.net
+    depends_on:
+      - django
+  django:
+    hostname: django
+    container_name: zincbindpredict_django
+    volumes:
+      - static_volume:/home/app/static
+    build:
+      context: .
+    image: samirelanduk/zincbindpredict_django
+volumes:
+  static_volume:
